@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title th:if="${fileRowsDTO.taskSelectFlag}==null">文件对象管理</title>
+    <title th:if="${fileRowsDTO.taskSelectFlag}!=null">文件对象选择</title>
+
+    <script th:inline="javascript">
+        function confirmAction(action, fileFormatId, onLineFlag) {
+            var url = "";
+            var info = "";
+            if (action == "delete") {
+                info = "确认删除?";
+                url = '/datakit/file/rows/operate?fileFormatId=' + fileFormatId + "&action=1";
+            } else if (action == "online") {
+                info = "确认申请上线?";
+                url = '/datakit/file/rows/operate?fileFormatId=' + fileFormatId + "&action=2";
+            } else if (action == "offline") {
+                info = "确认申请下线?";
+                url = '/datakit/file/rows/operate?fileFormatId=' + fileFormatId + "&action=3";
+            } else if (action == "detail") {
+                url = '/datakit/file/query?fileFormatId=' + fileFormatId + '&pageNum=1&viewFlag=1'
+            } else if (action == "edit") {
+                url = '/datakit/file/query?fileFormatId=' + fileFormatId + '&pageNum=1&viewFlag=2'
+            } else if (action == "add") {
+                url = '/datakit/file/query?fileFormatId=-1&pageNum=1&viewFlag=2';
+            } else if (action == "copy") {
+                info = "确认复制该文件对象?";
+                url = '/datakit/file/rows/operate?fileFormatId=' + fileFormatId + "&action=4";
+            }
+
+            if (action == "online" || action == "offline" || action == "copy") {
+                if (confirm(info)) {
+                    window.location.href = url;
+                }
+            } else if (action == "delete") {
+                if (onLineFlag != "0") {
+                    alert("请先申请表实例下线!")
+                } else {
+                    if (confirm(info)) {
+                        window.location.href = url;
+                    }
+                }
+            } else if (action == "detail" || action == "add") {
+                window.location.href = url;
+            } else if (action == "edit") {
+                if (onLineFlag != "0") {
+                    alert("请先申请表实例下线!")
+                } else {
+                    window.location.href = url;
+                }
+            }
+        }
+
+        function backTaskRowsPage() {
+            window.location.href = "/datakit/taskRows/query?pageNum=1";
+        }
+
+        function taskSelectCloseWindow() {
+            if (document.getElementById('taskSelectedObjectId').value > 0) {
+                //当前子页面选择的数据保存到父页面上
+                window.opener.setValueFromChildPage([[${fileRowsDTO.taskSelectFlag}]],
+                    document.getElementById('taskSelectedObjectId').value,
+                    document.getElementById('taskSelectedObjectName').value);
+            }
+            window.close(); // 关闭新窗口
+        }
+
+        function toggleSelection(objectId, objectName) {
+            var taskSelectedObjectId = document.getElementById('taskSelectedObjectId');
+            if (taskSelectedObjectId.value === objectId) {
+                taskSelectedObjectId.value = '';
+            } else {
+                taskSelectedObjectId.value = objectId;
+            }
+
+            var taskSelectedObjectName = document.getElementById('taskSelectedObjectName');
+            if (taskSelectedObjectName.value === objectName) {
+                taskSelectedObjectName.value = '';
+            } else {
+                taskSelectedObjectName.value = objectName;
+            }
+        }
+    </script>
+
+    <style>
+        /* 定义鼠标悬停时的行颜色 */
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* 定义特定类名的行鼠标悬停颜色 */
+        tr.specific-row:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:if="${fileRowsDTO.taskSelectFlag}==null" th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <input type="hidden" id="taskSelectedObjectId" th:value="${taskSelectedObjectId}"/>
+    <input type="hidden" id="taskSelectedObjectName" th:value="${taskSelectedObjectName}"/>
+
+    <div style="width:1200px;margin:20px auto 0px auto;">
+        <form method="get" th:action="@{'/datakit/fileRows/query'}" th:object="${fileRowsDTO}">
+            状态:
+            <select th:if="${fileRowsDTO.taskSelectFlag}==null" name="onLineFlag" th:field="*{onLineFlag}">
+                <option th:value="-1" selected="selected">全部</option>
+                <option th:value="0"> 上线</option>
+                <option th:value="1"> 下线</option>
+            </select>
+            <select th:if="${fileRowsDTO.taskSelectFlag}!=null" name="onLineFlag" th:field="*{onLineFlag}">
+                <option th:value="1" selected="selected"> 上线</option>
+            </select>
+            &nbsp
+            <input type="submit" value="查询"/>
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            <button th:if="${fileRowsDTO.taskSelectFlag}==null" th:onclick="confirmAction( 'add');return false;">新增
+            </button>
+            <button th:if="${fileRowsDTO.taskSelectFlag}==null">刷新</button>
+            <button th:if="${fileRowsDTO.taskSelectFlag}!=null" th:onclick="taskSelectCloseWindow()">确认</button>
+            <input th:if="${fileRowsDTO.taskSelectFlag}!=null" type="hidden" th:field="*{taskSelectFlag}"
+                   th:value="${fileRowsDTO.taskSelectFlag}"/>
+        </form>
+    </div>
+
+    <div style="width:1200px;margin:0px auto 0px auto;">
+        <table style="width:1200px;margin:auto auto;">
+            <thead>
+            <tr>
+                <th>文件ID</th>
+                <th>文件类型</th>
+                <th>名称类型</th>
+                <th>文件名称</th>
+                <th>发布状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="iterator,rowNumber : ${pageInfo.list}"
+                th:onclick="toggleSelection([[${iterator.fileFormatId}]],[[${iterator.fileNameFormat}]])">
+                <td th:text="${iterator.fileFormatId}"></td>
+                <td th:text="${iterator.fileTypeName}"></td>
+                <td th:text="${iterator.fileNameTypeName}"></td>
+                <td th:text="${iterator.fileNameFormat}"></td>
+                <td th:text="${iterator.onLineFlagName}"></td>
+                <td th:text="${#dates.format(iterator.createDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td>
+                    <button th:if="${fileRowsDTO.taskSelectFlag}==null"
+                            th:onclick="confirmAction( 'detail',[[${iterator.fileFormatId}]])">详情
+                    </button>
+                    <button th:if="${fileRowsDTO.taskSelectFlag}==null"
+                            th:onclick="confirmAction( 'edit',[[${iterator.fileFormatId}]],[[${iterator.onLineFlag}]])">
+                        编辑
+                    </button>
+                    <button th:if="${fileRowsDTO.taskSelectFlag==null && iterator.onLineFlag==0}"
+                            th:onclick="confirmAction( 'online',[[${iterator.fileFormatId}]])">上线
+                    </button>
+                    <button th:if="${fileRowsDTO.taskSelectFlag==null && iterator.onLineFlag==1}"
+                            th:onclick="confirmAction( 'offline',[[${iterator.fileFormatId}]])">下线
+                    </button>
+                    <button th:if="${fileRowsDTO.taskSelectFlag}==null"
+                            th:onclick="confirmAction( 'delete',[[${iterator.fileFormatId}]],[[${iterator.onLineFlag}]])">
+                        删除
+                    </button>
+                    <button th:if="${fileRowsDTO.taskSelectFlag}==null"
+                            th:onclick="confirmAction( 'copy',[[${iterator.fileFormatId}]],[[${iterator.onLineFlag}]])">
+                        复制
+                    </button>
+                    <input th:if="${fileRowsDTO.taskSelectFlag}!=null"
+                           id="file-row-input-radio-id" name="input-radio-name" type="radio"
+                           th:value="${iterator.fileFormatId}">
+                </td>
+            </tr>
+            <tr th:if="${pageLeftSize!=0}" th:each="i:${#numbers.sequence(1,pageLeftSize)}">
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 展示页码 -->
+    <div style="text-align: center"
+         th:with="urlPrefix='/datakit/fileRows/query?pageNum=',urlSuffix='&onLineFlag='+${fileRowsDTO.onLineFlag}">
+        <div th:insert="common/commons::fragment-page(${urlPrefix},${urlSuffix})"></div>
+    </div>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+</body>
+</html>

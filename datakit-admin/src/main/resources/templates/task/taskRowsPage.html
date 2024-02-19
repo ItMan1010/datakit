@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>任务管理</title>
+
+    <script>
+        function showInputField() {
+            var select = document.getElementById("select-taskType");
+            var input = document.getElementById("input-taskId");
+            input.style.display = select.value == "-1" ? "block" : "none";
+        }
+
+        function confirmAction(action, taskId, onLineFlag) {
+            var url = "";
+            var info = "";
+            if (action == 'delete') {
+                info = "确认删除?";
+                url = '/datakit/task/operate?taskId=' + taskId + "&action=1";
+            } else if (action == 'create') {
+                info = "确认执行?";
+                url = '/datakit/taskInstance/create?taskId=' + taskId;
+            } else if (action == 'online') {
+                info = "确认上线?";
+                url = '/datakit/task/operate?taskId=' + taskId + "&action=2";
+            } else if (action == 'offline') {
+                info = "确认下线?";
+                url = '/datakit/task/operate?taskId=' + taskId + "&action=3";
+            } else if (action == 'detail') {
+                url = '/datakit/task/query?viewFlag=1&taskId=' + taskId;
+            } else if (action == 'copy') {
+                info = "确认复制该任务?";
+                url = '/datakit/task/operate?taskId=' + taskId + "&action=4";
+            }
+
+            if (action == "online" || action == "offline" || action == "copy") {
+                if (confirm(info)) {
+                    window.location.href = url;
+                }
+            } else if (action == "create") {
+                if (onLineFlag != "1") {
+                    alert("请先申请任务上线!")
+                } else {
+                    if (confirm(info)) {
+                        window.location.href = url;
+                    }
+                }
+            } else if (action == "delete") {
+                if (onLineFlag != "0") {
+                    alert("请先申请任务下线!")
+                } else {
+                    if (confirm(info)) {
+                        window.location.href = url;
+                    }
+                }
+            } else if (action == "detail") {
+                window.location.href = url;
+            }
+        }
+    </script>
+
+    <style>
+        .text-ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 10px; /* Adjust the width as needed */
+        }
+
+        /* 定义鼠标悬停时的行颜色 */
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* 定义特定类名的行鼠标悬停颜色 */
+        tr.specific-row:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <div style="width:1200px;margin:20px auto 5px auto;text-align: left">
+        <form method="post" th:action="@{'/datakit/taskRows/post/query?pageNum=1'}" th:object="${taskRowsDTO}">
+            查询条件:
+            <select onchange="showInputField()" id="select-taskType" name="taskType" th:field="*{taskType}">
+                <option th:value="0">请选择</option>
+                <option th:value="1"> 数据同步</option>
+                <option th:value="2"> 数据比较</option>
+                <option th:value="3"> 流程迁移</option>
+                <option th:value="-1"> 任务标识</option>
+
+            </select>
+            &nbsp
+            <input type="submit" value="查询"/>
+            <input type="text" id="input-taskId" style="display: none;" placeholder="请输入任务标识"
+                   th:field="*{taskId}">
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            <button>刷新</button>
+        </form>
+    </div>
+
+    <div style="width:1200px;margin:0px auto 0px auto;text-align: center">
+        <table th:width="1200" th:height="500">
+            <thead>
+            <tr>
+                <th>任务ID</th>
+                <th>任务类型</th>
+                <th>源对象类型</th>
+                <th>源对象ID</th>
+                <th>源对象名称</th>
+                <th>目标对象类型</th>
+                <th>目标对象ID</th>
+                <th>目标对象名称</th>
+                <th>发布状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="iterator,rowNumber : ${pageInfo.list}">
+                <td th:text="${iterator.taskId}"></td>
+                <td th:text="${iterator.taskTypeName}"></td>
+                <td th:text="${iterator.aObjectTypeName}"></td>
+                <td th:text="${iterator.aObjectId}"></td>
+                <td class="text-ellipsis" th:text="${iterator.aObjectName}" th:title="${iterator.aObjectName}"></td>
+                <td th:text="${iterator.bObjectTypeName}"></td>
+                <td th:text="${iterator.bObjectId}"></td>
+                <td class="text-ellipsis" th:text="${iterator.bObjectName}" th:title="${iterator.bObjectName}"></td>
+                <td th:text="${iterator.onLineFlagName}"></td>
+                <td th:text="${#dates.format(iterator.createDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td>
+                    <button th:onclick="confirmAction( 'detail',[[${iterator.taskId}]])">详情</button>
+                    <button th:onclick="confirmAction( 'create',[[${iterator.taskId}]], [[${iterator.onLineFlag}]])">执行
+                    </button>
+                    <button th:if="${iterator.onLineFlag==0}"
+                            th:onclick="confirmAction( 'online',[[${iterator.taskId}]])">上线
+                    </button>
+                    <button th:if="${iterator.onLineFlag==1}"
+                            th:onclick="confirmAction( 'offline',[[${iterator.taskId}]])">下线
+                    </button>
+                    <button th:onclick="confirmAction( 'delete', [[${iterator.taskId}]], [[${iterator.onLineFlag}]])">
+                        删除
+                    </button>
+                    <button th:onclick="confirmAction( 'copy', [[${iterator.taskId}]], [[${iterator.onLineFlag}]])">
+                        复制
+                    </button>
+                </td>
+            </tr>
+            <tr th:if="${pageLeftSize!=0}" th:each="i:${#numbers.sequence(1,pageLeftSize)}">
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- 展示页码 -->
+        <div style="width:1200px;margin:0px auto auto auto;text-align: center"
+             th:with="urlPrefix='/datakit/taskRows/query?pageNum=',urlSuffix='&taskType='+${taskRowsDTO.taskType}">
+            <div th:insert="common/commons::fragment-page(${urlPrefix},${urlSuffix})"></div>
+        </div>
+
+        <div style="display: none;"
+             th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+    </div>
+</div>
+</body>
+</html>

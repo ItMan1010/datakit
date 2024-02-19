@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>任务实例详情</title>
+
+    <script th:inline="javascript">
+        function backWindow() {
+            history.back();
+        }
+    </script>
+
+    <style>
+        .text-ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100px; /* Adjust the width as needed */
+        }
+
+        th, td {
+            font-size: 13px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <div style="width:800px;margin:20px auto 20px auto;">
+        一：基本信息
+        <br/>
+        任务实例ID : <input readonly="readonly" type="text" th:value="${taskInstance.taskInstanceId}"/>
+        任务类型 : <input readonly="readonly" type="text" th:value="${taskInstance.taskTypeName}"/>
+        任务ID : <input readonly="readonly" type="text" th:value="${taskInstance.taskId}"/>
+        <br/>
+        生成时间 : <input readonly="readonly" type="text"
+                          th:value="${#dates.format(taskInstance.createDate, 'yyyy-MM-dd HH:mm:ss')}"/>
+        运行状态 : <input readonly="readonly" type="text" th:value="${taskInstance.runStateName}"/>
+        状态时间 : <input readonly="readonly" type="text"
+                          th:value="${#dates.format(taskInstance.runStateDate, 'yyyy-MM-dd HH:mm:ss')}"/>
+        <br/>
+        运行信息 : <input readonly="readonly" type="text" th:value="${taskInstance.taskMsg}"/>
+        主机名称 : <input readonly="readonly" type="text" th:value="${taskInstance.hostName}"/>
+        主机地址 : <input readonly="readonly" type="text" th:value="${taskInstance.hostIp}"/>
+    </div>
+    <div style="width:800px;margin:0px auto 20px auto;">
+        二：任务信息
+        &emsp;
+        <span><a th:href="@{'/datakit/task/query?viewFlag=1&taskId='+${taskInstance.taskId}}"
+                 th:text="配置详情"></a></span>
+    </div>
+    <div style="width:800px;margin:0px auto 20px auto;">
+        三：运行详情 &emsp; <input readonly="readonly" type="text" th:value="${taskInstance.runStateName}" th:size="8"/>
+        <table style="width:800px;">
+            <thead>
+            <tr>
+                <th style="width: 60px">运行ID</th>
+                <th style="width: 150px">运行时间</th>
+                <th style="width: 60px">日志级别</th>
+                <th>运行日志</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="iterator,rowNumber : ${runInfoList}">
+                <td th:text="${iterator.runInfoId}" style="width: 60px"></td>
+                <td th:text="${#dates.format(iterator.createDate, 'yyyy-MM-dd HH:mm:ss')}" style="width: 150px"></td>
+                <td th:text="${iterator.infoLevelName}" style="width: 60px"></td>
+                <td class="text-ellipsis" th:text="${iterator.runInfo}" th:title="${iterator.runInfo}"
+                    style="text-align: left;"></td>
+            </tr>
+            </tbody>
+        </table>
+        <br/>
+    </div>
+    <div th:if="${taskInstance.taskType}==2" style="width:800px;margin:0px auto 20px auto;">
+        四：比较详情
+        <table style="width:800px;">
+            <thead>
+            <tr>
+                <th>比较ID</th>
+                <th>比较时间</th>
+                <th>比较结果</th>
+                <th>差异说明</th>
+                <th>差异数据</th>
+                <th>修订状态</th>
+                <th>修订时间</th>
+                <th>修订结果</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="iterator,rowNumber : ${taskResultList}">
+                <td th:text="${iterator.taskResultId}"></td>
+                <td th:text="${#dates.format(iterator.createDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td th:text="${iterator.taskResult}" style="text-align: left;"></td>
+                <td th:text="${iterator.compareFlagName}"></td>
+                <td class="text-ellipsis"
+                    th:text="${iterator.compareData}"
+                    th:title="${iterator.compareData}"></td>
+                <td th:text="${iterator.repairStateName}"></td>
+                <td th:text="${#dates.format(iterator.repairStateDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td th:text="${iterator.repairInfo}"></td>
+            </tr>
+            </tbody>
+        </table>
+        <br/>
+    </div>
+
+    <div style="width:800px;margin:0px auto 0px auto;text-align: center">
+        <button th:onclick="window.location.reload();">刷新</button>
+        &emsp;
+        <button th:onclick="backWindow();return false;">关闭</button>
+    </div>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+</body>
+</html>'

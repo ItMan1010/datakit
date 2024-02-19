@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itman.datakit.admin.dao.CommonDao">
+    <select id="querySequence" resultType="java.lang.Long" flushCache="true">
+        <if test="dataBaseType == 'oracle'">
+            select ${sequenceName}.nextval from dual
+        </if>
+        <if test="dataBaseType != 'oracle'">
+            select dk_nextval(#{sequenceName})
+        </if>
+    </select>
+
+    <insert id="insertTaskRun">
+        insert into dk_run_info (
+        run_info_Id,
+        task_instance_id,
+        info_level,
+        run_info,
+        create_date
+        )
+        values
+        <foreach collection="taskRunList" item="iterator" index="index" separator=",">
+            (#{iterator.runInfoId},
+            #{iterator.taskInstanceId},
+            #{iterator.infoLevel},
+            #{iterator.runInfo},
+            ${sysdate})
+        </foreach>
+    </insert>
+
+    <select id="selectRunInfoByTaskInstanceId"
+            resultType="com.itman.datakit.admin.common.entity.RunInfo">
+        select run_info_Id,
+               task_instance_id,
+               info_level,
+               run_info,
+               create_date
+        from dk_run_info
+        where task_instance_id = #{taskInstanceId}
+        order by run_info_Id
+    </select>
+
+    <select id="selectRunInfoByIdAndLevel"
+            resultType="com.itman.datakit.admin.common.entity.RunInfo">
+        select run_info_Id,
+               task_instance_id,
+               info_level,
+               run_info,
+               create_date
+        from dk_run_info
+        where task_instance_id = #{taskInstanceId}
+          and info_level = #{infoLevel}
+    </select>
+
+    <update id="updateTaskRunInfoById">
+        update dk_run_info
+        set run_info = #{runInfo}
+        where run_info_Id = #{runInfoId}
+    </update>
+</mapper>

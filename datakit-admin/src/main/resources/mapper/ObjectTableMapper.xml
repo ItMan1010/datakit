@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itman.datakit.admin.dao.ObjectTableDao">
+    <insert id="insertDataList">
+        ${insertSql}
+    </insert>
+
+    <select id="selectDataList" resultType="java.util.Map">
+        ${selectSql}
+    </select>
+
+    <delete id="deleteData">
+        ${deleteSql}
+    </delete>
+
+    <select id="executeTableSql" resultType="java.lang.Integer">
+        ${executeSql}
+    </select>
+
+    <sql id="tableFieldColumnList">
+        table_field_id
+        ,table_format_id,field_name,field_type,field_length,null_able,create_date,state,state_date,key_flag
+    </sql>
+
+    <select id="selectTableField" resultType="com.itman.datakit.admin.common.entity.TableField">
+        select
+        <include refid="tableFieldColumnList"/>
+        from dk_table_field
+        where table_format_id = #{tableFormatId} and state = 1
+        order by table_field_id
+    </select>
+
+    <select id="selectTableFieldById" resultType="com.itman.datakit.admin.common.entity.TableField">
+        select
+        <include refid="tableFieldColumnList"/>
+        from dk_table_field
+        where table_field_id = #{tableFieldId} and state = 1
+    </select>
+
+    <sql id="tableFormatColumnList">
+        table_format_id
+        , table_name, table_where,create_date,state,state_date,data_base,on_line_flag
+    </sql>
+
+    <select id="selectTableFormatByName" resultType="com.itman.datakit.admin.common.entity.TableFormat">
+        select
+        <include refid="tableFormatColumnList"/>
+        from dk_table_format
+        where table_name = #{tableName} and state = 1
+    </select>
+
+    <select id="selectTableFormatById" resultType="com.itman.datakit.admin.common.entity.TableFormat">
+        select
+        <include refid="tableFormatColumnList"/>
+        from dk_table_format
+        where table_format_id = #{tableFormatId} and state = 1
+    </select>
+
+    <select id="selectTableFormatByOnLineFlag" resultType="com.itman.datakit.admin.common.entity.TableFormat">
+        select
+        <include refid="tableFormatColumnList"/>
+        from dk_table_format
+        where state = 1
+        <if test="onLineFlag != -1">
+            and on_line_flag = #{onLineFlag}
+        </if>
+        order by table_format_id desc
+    </select>
+
+    <delete id="deleteTableFormatById">
+        delete
+        from dk_table_format
+        where table_format_id = #{tableFormatId}
+          and state = 1
+    </delete>
+
+    <update id="updateTableFormatById">
+        update dk_table_format
+        set table_name=#{tableFormat.tableName},
+            table_where=#{tableFormat.tableWhere},
+            data_base=#{tableFormat.dataBase}
+        where table_format_id = #{tableFormat.tableFormatId}
+          and state = 1
+    </update>
+
+    <update id="updateTableFormatOnLineFlagById">
+        update dk_table_format
+        set on_line_flag=#{onLineFlag}
+        where table_format_id = #{tableFormatId}
+          and state = 1
+    </update>
+
+    <insert id="insertTable">
+        insert into dk_table_format (
+        <include refid="tableFormatColumnList"/>
+        )
+        values
+        (#{tableFormat.tableFormatId},
+        #{tableFormat.tableName},
+        #{tableFormat.tableWhere},
+        ${sysdate},
+        1,
+        ${sysdate},
+        #{tableFormat.dataBase},
+        #{tableFormat.onLineFlag})
+    </insert>
+
+    <update id="updateTableFieldById">
+        update dk_table_field
+        set field_name=#{tableField.fieldName},
+            field_type=#{tableField.fieldType},
+            field_length=#{tableField.fieldLength},
+            null_able=#{tableField.nullAble},
+            key_flag=#{tableField.keyFlag}
+        where table_field_id = #{tableField.tableFieldId}
+          and state = 1
+    </update>
+
+    <insert id="insertTableFieldList">
+        <if test="dataBaseType == 'oracle'">
+            insert all
+            <foreach collection="tableFieldList" item="iterator" index="index" separator=" ">
+                into dk_table_field (
+                <include refid="tableFieldColumnList"/>
+                )
+                values
+                (#{iterator.tableFieldId},
+                #{iterator.tableFormatId},
+                #{iterator.fieldName},
+                #{iterator.fieldType},
+                #{iterator.fieldLength},
+                #{iterator.nullAble},
+                ${sysdate},
+                1,
+                ${sysdate},
+                #{iterator.keyFlag})
+            </foreach>
+            select 1 from dual
+        </if>
+        <if test="dataBaseType != 'oracle'">
+            insert into dk_table_field (
+            <include refid="tableFieldColumnList"/>
+            )
+            values
+            <foreach collection="tableFieldList" item="iterator" index="index" separator=",">
+                (#{iterator.tableFieldId},
+                #{iterator.tableFormatId},
+                #{iterator.fieldName},
+                #{iterator.fieldType},
+                #{iterator.fieldLength},
+                #{iterator.nullAble},
+                ${sysdate},
+                1,
+                ${sysdate},
+                #{iterator.keyFlag})
+            </foreach>
+        </if>
+    </insert>
+
+    <delete id="deleteTableFieldById">
+        delete
+        from dk_table_field
+        where table_field_id = #{tableFieldId}
+          and state = 1
+    </delete>
+
+    <delete id="deleteTableFieldByTableFormatId">
+        delete
+        from dk_table_field
+        where table_format_id = #{tableFormatId}
+    </delete>
+
+    <sql id="tableFlowColumnList">
+        flow_format_id
+        , flow_name, source_data_base,target_data_base,create_date,state,state_date,remark,on_line_flag
+    </sql>
+</mapper>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>任务配置管理</title>
+
+    <script th:inline="javascript">
+        function confirmSubmit(taskAction) {
+            document.getElementById('input-task-action').value = taskAction;
+            if (document.getElementById('input-aObjectId').value.trim().length === 0) {
+                confirm('请选择源对象');
+                return false;
+            } else if (document.getElementById('input-bObjectId').value.trim().length === 0) {
+                confirm('请选择目标对象');
+                return false;
+            }
+
+            if (document.getElementById("select-taskType").value == 3 &&
+                document.getElementById('select-bObjectType').value != 3) {
+                confirm('目标对象只能选择流程');
+                return false;
+            } else if (document.getElementById("select-taskType").value != 3 &&
+                document.getElementById('select-bObjectType').value == 3) {
+                confirm('目标对象不能选择流程');
+                return false;
+            }
+
+            return true;
+        }
+
+        function confirmModify(taskId, onLineFlag) {
+            if (onLineFlag != "0") {
+                alert("该任务目前在线，请先申请下线处理!")
+            } else {
+                window.location.href = "/datakit/task/query?viewFlag=2&taskId=" + taskId;
+            }
+            return false;
+        }
+
+        function confirmOK() {
+            if (confirm('请先下拉选择')) {
+            }
+        }
+
+        function selectConfirmAction(param) {
+            var aObjectType = document.getElementById('select-aObjectType').value;
+            var bObjectType = document.getElementById('select-bObjectType').value;
+
+            if ((param == 'A' && aObjectType == -1) || (param == 'B' && bObjectType == -1)) {
+                confirmOK()
+                return;
+            }
+
+            if ((param == 'B' && bObjectType == 1) || (param == 'B' && bObjectType == 2)) {
+                if (document.getElementById("select-taskType").value == 3) {
+                    confirm('业务类型不能选择：流程同步');
+                    return false;
+                }
+            }
+
+            var objectSelect = null;
+            if ((param == 'A' && aObjectType == 1) || (param == 'B' && bObjectType == 1)) {
+                objectSelect = "fileRows";
+            } else if ((param == 'A' && aObjectType == 2) || (param == 'B' && bObjectType == 2)) {
+                objectSelect = "tableRows";
+            } else if (param == 'B' && bObjectType == 3) {
+                if (document.getElementById("select-taskType").value != 3) {
+                    confirm('业务类型请选择:流程同步');
+                    return false;
+                }
+                objectSelect = "tableFlowRows";
+            }
+            var url = '/datakit/' + objectSelect + '/select?pageNum=1&onLineFlag=1&taskSelectFlag=' + param +
+                '&taskType=' + document.getElementById('select-taskType').value +
+                '&aObjectType=' + aObjectType + '&remark=' + document.getElementById('input-remark').value;
+            window.open(url);
+        }
+
+        //由弹出子页面调用赋值
+        function setValueFromChildPage(taskSelectFlag, objectId, objectName) {
+            if (taskSelectFlag == 'A') {
+                document.getElementById('input-aObjectId').value = objectId;
+                document.getElementById('input-aObjectName').value = objectName;
+            } else if (taskSelectFlag == 'B') {
+                document.getElementById('input-bObjectId').value = objectId;
+                document.getElementById('input-bObjectName').value = objectName;
+            }
+
+            //表单提交，根据最新对象查询对应字段
+            document.getElementById('input-task-filed-mapped-action').value = 3;
+            document.getElementById("taskForm").submit();
+        }
+
+        function backWindow() {
+            history.back(); // 关闭新窗口
+        }
+
+        function addTaskFieldMapped() {
+            document.getElementById('input-task-filed-mapped-action').value = 1;
+        }
+
+        function deleteTaskFieldMapped(taskFieldMappedIndex) {
+            document.getElementById('input-task-filed-mapped-action').value = 2;
+            document.getElementById('input-task-filed-mapped-action-index').value = taskFieldMappedIndex;
+        }
+
+        function showDivRepair() {
+            var selectValue = document.getElementById("select-taskType").value;
+            var taskFieldRelaListArray = /*[[${task.taskFieldRelaList}]]*/ [];
+
+            if (selectValue === "2") {
+                //数据比较
+                document.getElementById("div-repair").style.display = "block";
+                document.getElementById("table-th-compareFlag").style.display = "block";
+                for (var i = 0; i < taskFieldRelaListArray.length; i++) {
+                    document.getElementById("table-td-compareFlag-" + i).style.display = "block";
+                }
+            } else {
+                document.getElementById("div-repair").style.display = "none";
+                document.getElementById("table-th-compareFlag").style.display = "none";
+                for (var i = 0; i < taskFieldRelaListArray.length; i++) {
+                    document.getElementById("table-td-compareFlag-" + i).style.display = "none";
+                }
+            }
+        }
+    </script>
+
+    <style>
+        th, td {
+            font-size: 13px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <div id="table-field" style="width:1000px;margin:20px auto;text-align: center;">
+        <form th:id="taskForm" method="get" th:action="@{/datakit/task/form/operate}" th:object="${task}">
+            <input th:if="${viewFlag==2}" type="hidden"
+                   th:id="input-task-action"
+                   th:value="${task.taskAction}"
+                   th:field="*{taskAction}"/>
+
+            <input th:if="${viewFlag==2}" type="hidden"
+                   th:id="input-task-filed-mapped-action"
+                   th:value="${task.taskFieldMappedAction}"
+                   th:field="*{taskFieldMappedAction}"/>
+
+            <input id="input-onLineFlag" type="hidden" th:value="${task.onLineFlag}" th:field="*{onLineFlag}"/>
+            <div style="width:800px;margin:10px auto;text-align: left;">
+                步骤一：基本信息
+                <br>
+                &emsp;&emsp;&emsp;&emsp;
+                <span>任务ID :</span>
+                <input id="input-taskId" type="text" th:value="${task.taskId}" th:field="*{taskId}" th:size="5"
+                       readonly="readonly"
+                       style="background-color: lightgray"/>
+                业务类型 :
+                <select id="select-taskType" name="taskType" th:field="*{taskType}" onchange="showDivRepair()">
+                    <option th:value="1"> 数据同步</option>
+                    <option th:value="2"> 数据比较</option>
+                    <option th:value="3"> 流程迁移</option>
+                </select>
+                备注 : <input id="input-remark" type="text" th:value="${task.remark}" th:field="*{remark}" th:size="30"/>
+
+                <div th:if="${task.taskType!=2}" th:id="div-repair" style="margin:0px auto;display: none;">
+                    &emsp;&emsp;&emsp;&emsp;
+                    修订url : <input id="input-repairUrl" type="text" th:value="${task.repairUrl}"
+                                     th:field="*{repairUrl}"/>
+                </div>
+                <div th:if="${task.taskType==2}" th:id="div-repair" style="margin:0px auto;">
+                    &emsp;&emsp;&emsp;&emsp;
+                    修订url : <input id="input-repairUrl-2" type="text" th:value="${task.repairUrl}"
+                                     th:field="*{repairUrl}"/>
+                </div>
+            </div>
+            <div style="width:800px;margin:10px auto;text-align: left;">
+                步骤二：业务对象
+                <br>
+                &emsp;&emsp;&emsp;&emsp;
+                源对象&emsp; :
+                <select id="select-aObjectType" th:field="*{aObjectType}">
+                    <option th:value="-1">请选择</option>
+                    <option th:value="1" th:text="文件"></option>
+                    <option th:value="2" th:text="表"></option>
+                </select>
+                &emsp;
+                <button th:if="${viewFlag==2}" th:onclick="selectConfirmAction('A');return false;">对象选择</button>
+                &emsp;
+                ID :
+                <input id="input-aObjectId" readonly="readonly" type="text" th:value="${task.aObjectId}"
+                       th:field="*{aObjectId}"
+                       th:size="5"/>
+                &emsp;
+                名称 :
+                <input id="input-aObjectName" readonly="readonly" type="text" th:value="${task.aObjectId}"
+                       th:field="*{aObjectName}"
+                       th:size="30"/>
+                <br>
+                &emsp;&emsp;&emsp;&emsp;
+                目标对象 :
+                <select id="select-bObjectType" th:field="*{bObjectType}">
+                    <option th:value="-1">请选择</option>
+                    <option th:value="1" th:text="文件"></option>
+                    <option th:value="2" th:text="表"></option>
+                    <option th:value="3" th:text="数据流"></option>
+                </select>
+                &emsp;
+                <button id="button-objectTypeB" th:if="${viewFlag==2}"
+                        th:onclick="selectConfirmAction('B');return false;">对象选择
+                </button>
+                &emsp;
+                ID :
+                <input id="input-bObjectId" readonly="readonly" type="text" th:value="${task.bObjectId}"
+                       th:field="*{bObjectId}"
+                       th:size="5"/>
+                &emsp;
+                名称 :
+                <input id="input-bObjectName" readonly="readonly" type="text" th:value="${task.bObjectId}"
+                       th:field="*{bObjectName}"
+                       th:size="30"/>
+            </div>
+            <div style="width:800px;margin:20px auto;text-align: left;">
+                步骤三：字段映射
+                <button th:if="${viewFlag==2}" th:onclick="addTaskFieldMapped()">新增行</button>
+                <div style="width:600px;margin:10px auto;text-align: center;">
+                    <table style="width:600px;">
+                        <thead>
+                        <tr>
+                            <th>源字段</th>
+                            <th>字段映射</th>
+                            <th>目标字段</th>
+                            <th th:if="${task.taskType!=2}" th:id="table-th-compareFlag" style="display: none;">比较KEY
+                            </th>
+                            <th th:if="${task.taskType==2}" th:id="table-th-compareFlag" style="display: block;">
+                                比较KEY
+                            </th>
+                            <th th:if="${viewFlag==2}">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${viewFlag==2}" th:each="iterator,itemStat : ${task.taskFieldRelaList}">
+                            <input type="hidden"
+                                   th:value="${task.taskFieldRelaList[__${itemStat.index}__].taskFieldRelaId}"
+                                   th:field="*{taskFieldRelaList[__${itemStat.index}__].taskFieldRelaId}"/>
+
+                            <td th:style="'text-align: center;'">
+                                <select th:field="*{taskFieldRelaList[__${itemStat.index}__].aObjectFieldId}">
+                                    <option th:value="-1" th:text="请选择"></option>
+                                    <option th:each="entry : ${task.aFieldNameMap}" th:value="${entry.key}"
+                                            th:text="${entry.value}"></option>
+                                </select>
+                            </td>
+                            <td th:style="'text-align: center;'"><---></td>
+                            <td th:style="'text-align: center;'">
+                                <select th:field="*{taskFieldRelaList[__${itemStat.index}__].bObjectFieldId}">
+                                    <option th:value="-1" th:text="请选择"></option>
+                                    <option th:each="entry : ${task.bFieldNameMap}" th:value="${entry.key}"
+                                            th:text="${entry.value}"></option>
+                                </select>
+                            </td>
+                            <td th:if="${task.taskType!=2}" th:id="table-td-compareFlag-+${itemStat.index}"
+                                th:style="'text-align: center;display: none;'">
+                                <input th:field="*{taskFieldRelaList[__${itemStat.index}__].compareFlag}"
+                                       th:value="1"
+                                       th:checked="${iterator.compareFlag==1}"
+                                       type="checkbox"/>
+                            </td>
+                            <td th:if="${task.taskType==2}" th:id="table-td-compareFlag-+${itemStat.index}"
+                                th:style="'text-align: center;display: block;'">
+                                <input th:field="*{taskFieldRelaList[__${itemStat.index}__].compareFlag}"
+                                       th:value="1"
+                                       th:checked="${iterator.compareFlag==1}"
+                                       type="checkbox"/>
+                            </td>
+                            <td th:style="'text-align: center;'">
+                                <button th:onclick="deleteTaskFieldMapped([[${itemStat.index}]])">删除</button>
+                            </td>
+                        </tr>
+
+                        <tr th:if="${viewFlag==1}" th:each="iterator,itemStat : ${task.taskFieldRelaList}">
+                            <td th:with="withAObjectFieldId=${task.taskFieldRelaList[__${itemStat.index}__].aObjectFieldId}"
+                                th:text="${task.aFieldNameMap[__${withAObjectFieldId}__]}"></td>
+                            <td><---></td>
+                            <td th:with="withBObjectFieldId=${task.taskFieldRelaList[__${itemStat.index}__].bObjectFieldId}"
+                                th:text="${task.bFieldNameMap[__${withBObjectFieldId}__]}"></td>
+                            <td th:if="${task.taskType==2}">
+                                <input th:checked="${iterator.compareFlag==1}" readonly="readonly" type="checkbox"/>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <input th:if="${viewFlag==2}" type="submit" value="保存" th:onclick="return confirmSubmit(1);"/>
+            &nbsp;
+            <input th:if="${viewFlag==2}" type="reset" value="重置"/>
+
+            <button th:if="${viewFlag==1}"
+                    th:onclick="return confirmModify([[${task.taskId}]], [[${task.onLineFlag}]]);return false;">修改
+            </button>
+            &nbsp;
+            <input th:if="${viewFlag==2}" type="submit" value="字段匹配" th:onclick="return confirmSubmit(2);"/>
+            &nbsp;
+            <button th:onclick="backWindow();return false;">关闭</button>
+
+            <input type="hidden"
+                   th:id="input-task-filed-mapped-action-index"
+                   th:value="${task.taskFieldMappedIndex}"
+                   th:field="*{taskFieldMappedIndex}"/>
+        </form>
+    </div>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+</body>
+</html>'

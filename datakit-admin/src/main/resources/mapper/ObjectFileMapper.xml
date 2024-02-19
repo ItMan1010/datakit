@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itman.datakit.admin.dao.ObjectFileDao">
+    <sql id="fileBodyColumnList">
+        file_body_id
+        ,file_format_id, split_flag,fix_begin_line,fix_end_line,state,state_date,create_date
+    </sql>
+
+    <select id="selectFileBodyById" resultType="com.itman.datakit.admin.common.entity.FileBody">
+        select
+        <include refid="fileBodyColumnList"/>
+        from dk_file_body
+        where file_body_id = #{fileBodyId} and state=1
+    </select>
+
+    <select id="selectFileBodyByFileFormatId" resultType="com.itman.datakit.admin.common.entity.FileBody">
+        select
+        <include refid="fileBodyColumnList"/>
+        from dk_file_body
+        where file_format_id = #{fileFormatId} and state=1
+    </select>
+
+    <sql id="fileSpecialColumnList">
+        file_special_id
+        ,file_format_id, split_flag,fix_line_position,remark,state,state_date,create_date
+    </sql>
+
+    <select id="selectFileSpecialByFileFormatId" resultType="com.itman.datakit.admin.common.entity.FileSpecial">
+        select
+        <include refid="fileSpecialColumnList"/>
+        from dk_file_special
+        where file_format_id = #{fileFormatId} and state = 1 order by file_special_id
+    </select>
+
+    <sql id="fileFieldColumnList">
+        file_field_id
+        ,file_format_id, belong_flag, belong_id, field_name, fix_width, position, sum_line_flag,sum_field_name,state,state_date,create_date
+    </sql>
+
+    <select id="selectFileField" resultType="com.itman.datakit.admin.common.entity.FileField">
+        select
+        <include refid="fileFieldColumnList"/>
+        from dk_file_field
+        where belong_flag = #{belongFlag}
+        and belong_id = #{belongId}
+        and state = 1
+        order by position
+    </select>
+
+    <select id="selectFileFieldByFileFormatId" resultType="com.itman.datakit.admin.common.entity.FileField">
+        select
+        <include refid="fileFieldColumnList"/>
+        from dk_file_field
+        where file_format_id = #{fileFormatId}
+        and state = 1
+        order by position
+    </select>
+
+    <select id="selectFileFieldById" resultType="com.itman.datakit.admin.common.entity.FileField">
+        select
+        <include refid="fileFieldColumnList"/>
+        from dk_file_field
+        where file_format_id = #{fileFormatId}
+        and state = 1
+        order by position
+    </select>
+
+    <sql id="fileFormatColumnList">
+        file_format_id
+        ,file_type
+        , file_name_type
+        ,file_name_format
+        ,ftp_host
+        ,ftp_port
+        ,ftp_user
+        ,ftp_passwd,ftp_path,local_path,file_bak_action,file_bak_path,state,state_date,create_date,on_line_flag
+    </sql>
+
+    <select id="selectFileFormat" resultType="com.itman.datakit.admin.common.entity.FileFormat">
+        select
+        <include refid="fileFormatColumnList"/>
+        from dk_file_format
+        where file_Format_Id = #{fileFormatId} and state=1
+    </select>
+
+    <select id="selectFileFilter" resultType="com.itman.datakit.admin.common.entity.FileFilter">
+        select file_filter_id, file_format_id, file_field_id, symbol_id, symbol_group, file_field_value, state
+        from dk_file_filter
+        where file_format_id = #{fileFormatId}
+          and state = 1
+        order by symbol_group, file_field_id
+    </select>
+
+    <select id="selectFileFormatByOnLineFlag" resultType="com.itman.datakit.admin.common.entity.FileFormat">
+        select
+        <include refid="fileFormatColumnList"/>
+        from dk_file_format
+        where state = 1
+        <if test="onLineFlag != -1">
+            and on_line_flag = #{onLineFlag}
+        </if>
+        order by file_format_id desc
+    </select>
+
+    <delete id="deleteFileFormatById">
+        delete
+        from dk_file_format
+        where file_format_id = #{fileFormatId}
+    </delete>
+
+    <delete id="deleteFileSpecialByFileFormatId">
+        delete
+        from dk_file_special
+        where file_format_id = #{fileFormatId}
+    </delete>
+
+    <delete id="deleteFileSpecialById">
+        delete
+        from dk_file_special
+        where file_special_id = #{fileSpecialId}
+    </delete>
+
+    <delete id="deleteFileBodyByFileFormatId">
+        delete
+        from dk_file_body
+        where file_format_id = #{fileFormatId}
+    </delete>
+
+    <delete id="deleteFileFilterByFileFormatId">
+        delete
+        from dk_file_filter
+        where file_format_id = #{fileFormatId}
+    </delete>
+
+    <delete id="deleteFileFieldByFileFormatId">
+        delete
+        from dk_file_field
+        where file_format_id = #{fileFormatId}
+    </delete>
+
+    <insert id="insertFile">
+        insert into dk_file_format (
+        <include refid="fileFormatColumnList"/>
+        )
+        values
+        (#{fileFormat.fileFormatId},
+        #{fileFormat.fileType},
+        #{fileFormat.fileNameType},
+        #{fileFormat.fileNameFormat},
+        #{fileFormat.ftpHost},
+        #{fileFormat.ftpPort},
+        #{fileFormat.ftpUser},
+        #{fileFormat.ftpPasswd},
+        #{fileFormat.ftpPath},
+        #{fileFormat.localPath},
+        #{fileFormat.fileBakAction},
+        #{fileFormat.fileBakPath},
+        1,
+        ${sysdate},
+        ${sysdate},
+        #{fileFormat.onLineFlag})
+    </insert>
+
+    <update id="updateFile">
+        update dk_file_format
+        set file_name_type=#{fileFormat.fileNameType},
+            file_type=#{fileFormat.fileType},
+            file_name_format=#{fileFormat.fileNameFormat},
+            local_path=#{fileFormat.localPath},
+            ftp_host=#{fileFormat.ftpHost},
+            ftp_port=#{fileFormat.ftpPort},
+            ftp_passwd=#{fileFormat.ftpPasswd},
+            ftp_user=#{fileFormat.ftpUser},
+            ftp_path=#{fileFormat.ftpPath},
+            file_bak_action=#{fileFormat.fileBakAction},
+            file_bak_path=#{fileFormat.fileBakPath}
+        where file_format_id = #{fileFormat.fileFormatId}
+          and state = 1
+    </update>
+
+    <insert id="insertFileBody">
+        insert into dk_file_body (
+        <include refid="fileBodyColumnList"/>
+        )
+        values
+        (#{fileBody.fileBodyId},
+        #{fileBody.fileFormatId},
+        #{fileBody.splitFlag},
+        #{fileBody.fixBeginLine},
+        #{fileBody.fixEndLine},
+        1,
+        ${sysdate},
+        ${sysdate})
+    </insert>
+
+    <update id="updateFileBody">
+        update dk_file_body
+        set split_flag=#{fileBody.splitFlag},
+            fix_begin_line=#{fileBody.fixBeginLine},
+            fix_end_line=#{fileBody.fixEndLine}
+        where file_body_id = #{fileBody.fileBodyId}
+          and state = 1
+    </update>
+
+    <insert id="insertFileFieldList">
+        <if test="dataBaseType == 'oracle'">
+            insert all
+            <foreach collection="fileFieldList" item="iterator" index="index" separator=" ">
+                into dk_file_field (
+                <include refid="fileFieldColumnList"/>
+                )
+                values
+                (#{iterator.fileFieldId},
+                #{iterator.fileFormatId},
+                #{iterator.belongFlag},
+                #{iterator.belongId},
+                #{iterator.fieldName},
+                #{iterator.fixWidth},
+                #{iterator.position},
+                #{iterator.sumLineFlag},
+                #{iterator.sumFieldName},
+                1,
+                ${sysdate},
+                ${sysdate})
+            </foreach>
+            select 1 from dual
+        </if>
+        <if test="dataBaseType != 'oracle'">
+            insert into dk_file_field (
+            <include refid="fileFieldColumnList"/>
+            )
+            values
+            <foreach collection="fileFieldList" item="iterator" index="index" separator=",">
+                (#{iterator.fileFieldId},
+                #{iterator.fileFormatId},
+                #{iterator.belongFlag},
+                #{iterator.belongId},
+                #{iterator.fieldName},
+                #{iterator.fixWidth},
+                #{iterator.position},
+                #{iterator.sumLineFlag},
+                #{iterator.sumFieldName},
+                1,
+                ${sysdate},
+                ${sysdate})
+            </foreach>
+        </if>
+    </insert>
+
+    <delete id="deleteFileField">
+        delete
+        from dk_file_field
+        where file_field_id = #{fileFieldId}
+    </delete>
+
+    <insert id="insertFileSpecial">
+        insert into dk_file_special (
+        <include refid="fileSpecialColumnList"/>
+        )
+        values
+        (#{fileSpecial.fileSpecialId},
+        #{fileSpecial.fileFormatId},
+        #{fileSpecial.splitFlag},
+        #{fileSpecial.fixLinePosition},
+        #{fileSpecial.remark},
+        1,
+        ${sysdate},
+        ${sysdate})
+    </insert>
+
+    <update id="updateFileField">
+        update dk_file_field
+        set field_name=#{fileField.fieldName},
+            fix_width=#{fileField.fixWidth},
+            position=#{fileField.position},
+            sum_line_flag=#{fileField.sumLineFlag},
+            sum_field_name=#{fileField.sumFieldName}
+        where file_field_id = #{fileField.fileFieldId}
+          and state = 1
+    </update>
+
+    <update id="updateFileSpecial">
+        update dk_file_special
+        set split_flag=#{fileSpecial.splitFlag},
+            fix_line_position=#{fileSpecial.fixLinePosition},
+            remark=#{fileSpecial.remark}
+        where file_special_id = #{fileSpecial.fileSpecialId}
+          and state = 1
+    </update>
+
+    <update id="updateFileFormatOnLineFlagById">
+        update dk_file_format
+        set on_line_flag=#{onLineFlag}
+        where file_format_id = #{fileFormatId}
+          and state = 1
+    </update>
+</mapper>

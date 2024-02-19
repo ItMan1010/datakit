@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>任务实例管理</title>
+
+    <script th:inline="javascript">
+        function confirmAction(action, taskInstanceId, taskRunState) {
+            var url = '/datakit/taskInstance/operate';
+            url = url + '?taskInstanceId=' + taskInstanceId;
+            url = url + '&action=' + action;
+            url = url + '&createDate=' + document.getElementById('input-beginDate').value;
+            url = url + '&endDate=' + document.getElementById('input-endDate').value;
+            url = url + '&runState=' + document.getElementById('select-runState').value;
+            url = url + '&pageNum=' + [[${pageInfo.pageNum}]];
+
+            var info = "";
+            if (action == "delete") {
+                if (taskRunState == 1) {
+                    alert("当前任务正在处理中，请先中止任务!")
+                    return;
+                }
+
+                info = "确认删除操作?";
+            } else if (action == "repair") {
+                info = "确认修订操作?";
+            } else if (action == "stop") {
+                if (taskRunState != 1) {
+                    alert("当前任务状态必须是【运行中】才能中止操作!")
+                    return;
+                }
+
+                info = "确认中止操作?";
+            }
+
+            if (confirm(info)) {
+                window.location.href = url;
+            }
+        }
+
+        function confirmDetail(taskInstanceId) {
+            var url = '/datakit/taskInstance/query?taskInstanceId=' + taskInstanceId;
+            window.location.href = url;
+        }
+    </script>
+
+    <style>
+        /* 定义鼠标悬停时的行颜色 */
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* 定义特定类名的行鼠标悬停颜色 */
+        tr.specific-row:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <div style="width:1200px;margin:20px auto 5px auto;text-align: left">
+        <form method="post" th:action="@{'/datakit/taskInstanceRows/post/query?pageNum=1'}"
+              th:object="${taskInstanceDTO}">
+            开始日期: <input th:id="input-beginDate" name="beginDate" th:field="*{beginDate}" type="date"/>
+            ~ 结束日期: <input th:id="input-endDate" name="endDate" th:field="*{endDate}" type="date"/>
+            &nbsp执行状态: <select th:id="select-runState" name="runState" th:field="*{runState}">
+            <option th:value="-1">请选择</option>
+            <option th:value="0"> 等待运行</option>
+            <option th:value="1" selected="selected"> 运行中</option>
+            <option th:value="2">运行结束</option>
+            <option th:value="3">运行失败</option>
+        </select>
+            &nbsp<input type="submit" value="查询"/>&nbsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            <button>刷新</button>
+        </form>
+    </div>
+
+    <div style="width:1200px;margin:0px auto 0px auto;">
+        <table th:width="1200" th:height="500">
+            <thead>
+            <tr>
+                <th>实例ID</th>
+                <th>任务类型</th>
+                <th>任务ID</th>
+                <th>生成时间</th>
+                <th>运行状态</th>
+                <th>状态时间</th>
+                <th>主机名称</th>
+                <th>主机地址</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="iterator,rowNumber : ${pageInfo.list}">
+                <td th:text="${iterator.taskInstanceId}"></td>
+                <td th:text="${iterator.taskTypeName}"></td>
+                <td th:text="${iterator.taskId}"></td>
+                <td th:text="${#dates.format(iterator.createDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td th:text="${iterator.runStateName}"></td>
+                <td th:text="${#dates.format(iterator.runStateDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                <td th:text="${iterator.hostName}"></td>
+                <td th:text="${iterator.hostIp}"></td>
+                <td>
+                    <button th:onclick="confirmDetail( [[${iterator.taskInstanceId}]])">详情</button>
+                    <button th:onclick="confirmAction( 'delete',[[${iterator.taskInstanceId}]],[[${iterator.runState}]])">
+                        删除
+                    </button>
+                    <button th:if="${iterator.taskType==2}"
+                            th:onclick="confirmAction('repair', [[${iterator.taskInstanceId}]])">
+                        修订
+                    </button>
+                    <button th:onclick="confirmAction( 'stop',[[${iterator.taskInstanceId}]],[[${iterator.runState}]])">
+                        中止
+                    </button>
+                </td>
+            </tr>
+            <tr th:if="${pageLeftSize!=0}" th:each="i:${#numbers.sequence(1,pageLeftSize)}">
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- 展示页码 -->
+        <div style="width:1200px;margin:0px auto auto auto;text-align: center"
+             th:with="urlPrefix='/datakit/taskInstanceRows/query?pageNum=',
+             urlSuffix='&beginDate='+${taskInstanceDTO.beginDate}+'&endDate='+${taskInstanceDTO.endDate}+'&runState='+${taskInstanceDTO.runState}">
+            <div th:insert="common/commons::fragment-page(${urlPrefix},${urlSuffix})"></div>
+        </div>
+    </div>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+
+</body>
+</html>

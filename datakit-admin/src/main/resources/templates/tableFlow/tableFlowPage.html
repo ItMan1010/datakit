@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>数据流管理</title>
+
+    <script th:inline="javascript">
+        function backTableFlowRowsWindow() {
+            window.location.href = '/datakit/tableFlowRows/query?pageNum=1';
+        }
+
+        function confirmSubmit(action) {
+            if (document.getElementById('input-flowName').value.trim().length === 0) {
+                confirm('请输入流程名称');
+                return false;
+            }
+
+            if (document.getElementById('select-sourceDataBase').value === "-1") {
+                confirm('请选择源端数据库');
+                return false;
+            }
+
+            if (document.getElementById('select-targetDataBase').value === "-1") {
+                confirm('请选择目标端数据库');
+                return false;
+            }
+
+            if (document.getElementById('select-sourceDataBase').value === document.getElementById('select-targetDataBase').value) {
+                confirm('源端数据库和目标端数据库不能一致');
+                return false;
+            }
+
+            //刷新节点结构
+            updateTableFlowNodeToJason();
+
+            document.getElementById('input-table-flow-action').value = action;
+            return true;
+        }
+
+        function updateTableFlowNodeToJason() {
+            var tableFlowFormat = /*[[${tableFlowFormat}]]*/ [];
+            //tableFlowNodeList[0]跳过根节点，根据没有字段选择
+            getChildFlowNodeFieldName(tableFlowFormat.tableFlowNodeList);
+
+            if (document.getElementById("input-tableFlowFormatJason")) {
+                document.getElementById("input-tableFlowFormatJason").value = JSON.stringify(tableFlowFormat);
+            }
+            return true;
+        }
+
+        function getChildFlowNodeFieldName(tableFlowNodeList) {
+            if (tableFlowNodeList.length === 0) {
+                return true;
+            }
+
+            for (var i = 0; i < tableFlowNodeList.length; i++) {
+                if (document.getElementById('select-flow-node-id-' + tableFlowNodeList[i].flowNodeId)) {
+                    tableFlowNodeList[i].selectedFieldName = document.getElementById('select-flow-node-id-' + tableFlowNodeList[i].flowNodeId).value;
+                    if (document.getElementById('select-parent-flow-node-id-' + tableFlowNodeList[i].flowNodeId)) {
+                        tableFlowNodeList[i].selectedParentFieldName = document.getElementById('select-parent-flow-node-id-' + tableFlowNodeList[i].flowNodeId).value;
+                    }
+
+                    getChildFlowNodeFieldName(tableFlowNodeList[i].children);
+                }
+            }
+            return true;
+        }
+
+        function addTableField() {
+            document.getElementById('input-table-field-action').value = 1;
+        }
+
+        function deleteTableField(tableFieldIndex) {
+            document.getElementById('input-table-field-action').value = 2;
+            document.getElementById('input-table-field-index').value = tableFieldIndex;
+        }
+
+        function confirmFlowNode(action, flowNodeId) {
+            document.getElementById('input-table-flow-action').value = 0;
+            document.getElementById('input-table-flow-node-id').value = flowNodeId;
+            if (action == "add") {
+                var tableName = prompt("请输入下级节点表名");
+                if (tableName.length == 0) {
+                    return false;
+                }
+
+                document.getElementById('input-table-flow-node-action').value = 1;
+                document.getElementById('input-table-flow-node-action-table-name').value = tableName;
+
+                //刷新节点结构
+                updateTableFlowNodeToJason();
+            } else if (action == "del") {
+                document.getElementById('input-table-flow-node-action').value = 2;
+            } else if (action == "edit") {
+                var tableName = prompt("请输入需要更新表名");
+                if (tableName.length == 0) {
+                    return false;
+                }
+
+                document.getElementById('input-table-flow-node-action').value = 3;
+                document.getElementById('input-table-flow-node-action-table-name').value = tableName;
+            }
+
+            return true;
+        }
+    </script>
+
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <form method="post" th:action="@{/datakit/table/flow/form/operate}" th:object="${tableFlowFormat}">
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-table-flow-action"
+               th:value="${tableFlowFormat.tableFlowAction}"
+               th:field="*{tableFlowAction}"/>
+
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-table-flow-node-action"
+               th:value="${tableFlowFormat.tableFlowNodeAction}"
+               th:field="*{tableFlowNodeAction}"/>
+
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-table-flow-node-action-table-name"
+               th:value="${tableFlowFormat.tableFlowNodeTableName}"
+               th:field="*{tableFlowNodeTableName}"/>
+
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-tableFlowFormatJason"
+               th:value="${tableFlowFormat.tableFlowFormatJason}"
+               th:field="*{tableFlowFormatJason}"/>
+
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-table-flow-node-id"
+               th:value="${tableFlowFormat.tableFlowNodeId}"
+               th:field="*{tableFlowNodeId}"/>
+
+        <!--        <input th:if="${viewFlag==2}" type="hidden"-->
+        <!--               th:value="${tableFlowFormat.createDate}"-->
+        <!--               th:field="*{createDate}"/>-->
+
+        <div th:if="${viewFlag==1}" style="width:1000px;margin:20px auto;text-align: left;">
+            &emsp;基本信息：
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;
+            流程ID : <input th:value="${tableFlowFormat.flowFormatId}"
+                            readonly="readonly" type="text" th:size="5"/>
+            &emsp;
+            流程名称 : <input th:value="${tableFlowFormat.flowName}" readonly="readonly" type="text"/>
+            &emsp;
+            备注 : <input th:value="${tableFlowFormat.remark}" readonly="readonly" type="text"/>
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;
+            源端库&emsp;: <select th:field="*{sourceDataBase}" readonly="readonly">
+            <option th:value="-1" th:text="请选择"></option>
+            <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                    th:text="${entry.value}"></option>
+        </select>
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;
+            目标端库 : <select th:field="*{targetDataBase}" readonly="readonly">
+            <option th:value="-1" th:text="请选择"></option>
+            <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                    th:text="${entry.value}"></option>
+        </select>
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;
+            发布状态 : <input th:value="${tableFlowFormat.getOnLineFlagName()}" readonly="readonly" type="text"
+                              th:size="4"/>
+            &emsp;
+            创建时间 : <input readonly="readonly" type="text"
+                              th:value="${#dates.format(tableFlowFormat.createDate, 'yyyy-MM-dd HH:mm:ss')}"/>
+
+        </div>
+        <div th:if="${viewFlag==2}" style="width:1000px;margin:20px auto;text-align: left;">
+            &emsp;基本信息：
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;
+            流程ID : <input th:if="${tableFlowFormat.flowFormatId!=-1}"
+                            readonly="readonly" th:value="${tableFlowFormat.flowFormatId}" th:field="*{flowFormatId}"
+                            type="text"
+                            th:style="'background-color: lightgray'"
+                            th:size="5"/>
+            <input th:if="${tableFlowFormat.flowFormatId==-1}"
+                   readonly="readonly" type="text" th:style="'background-color: lightgray'"
+                   th:size="5"/>
+            <input th:if="${tableFlowFormat.flowFormatId==-1}"
+                   readonly="readonly" th:field="*{flowFormatId}" type="hidden" th:style="'background-color: lightgray'"
+                   th:size="5"/>
+            &emsp;
+            流程名称 : <input th:id="input-flowName" th:value="${tableFlowFormat.flowName}" th:field="*{flowName}"
+                              type="text"/>
+            &emsp;
+            备注 : <input th:value="${tableFlowFormat.remark}" th:field="*{remark}" type="text"/>
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;
+            源端库&emsp;: <select th:id="select-sourceDataBase" th:field="*{sourceDataBase}">
+            <option th:value="-1" th:text="请选择"></option>
+            <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                    th:text="${entry.value}"></option>
+        </select>
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;
+            目标端库 : <select th:id="select-targetDataBase" th:field="*{targetDataBase}">
+            <option th:value="-1" th:text="请选择"></option>
+            <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                    th:text="${entry.value}"></option>
+        </select>
+        </div>
+
+        <div th:if="${viewFlag==1}" style="width:1000px;margin:20px auto 0px auto;text-align: left;">
+            <ul>
+                <li><span th:text="数据节点"></span>
+                    <ul th:if="${tableFlowFormat.tableFlowNodeList}">
+                        <li th:each="child:${tableFlowFormat.tableFlowNodeList}"
+                            th:include="common/commons::subTableFlowNodeSelect"></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div th:if="${viewFlag==2}" style="width:1000px;margin:20px auto 0px auto;text-align: left;">
+            <ul>
+                <li><span th:text="数据节点"></span>
+                    <button th:onclick="confirmFlowNode('add',0);">add</button>
+                    <ul th:if="${tableFlowFormat.tableFlowNodeList}">
+                        <li th:each="child,itemStat:${tableFlowFormat.tableFlowNodeList}"
+                            th:include="common/commons::subTableFlowNodeEdit"></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div th:if="${viewFlag==1}" style="width:1000px;margin:20px auto;text-align: center;">
+            <button th:onclick="backTableFlowRowsWindow();return false;">关闭</button>
+        </div>
+        <div th:if="${viewFlag==2}" style="width:1000px;margin:20px auto;text-align: center;">
+            <input type="submit" value="保存" th:onclick="confirmSubmit(1);"/>
+            &emsp;
+            <input type="reset" value="重置"/>
+            &emsp;
+            <input type="submit" value="流程校验" th:onclick="return confirmSubmit(2);"/>
+            &emsp;
+            <button th:onclick="backTableFlowRowsWindow();return false;">关闭</button>
+        </div>
+    </form>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Datakit oracle序列执行脚本
+# Copyright (c) 2023-present, ItMan.
+
+CREATE SEQUENCE seq_datakit_id
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 10000000000
+NOORDER
+NOCACHE
+NOCYCLE;

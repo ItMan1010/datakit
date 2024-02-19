@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itman.datakit.admin.dao.ObjectTableFlowDao">
+    <select id="selectDataList" resultType="java.util.Map">
+        ${selectSql}
+    </select>
+
+    <insert id="insertDataList">
+        ${insertSql}
+    </insert>
+
+    <sql id="tableFlowColumnList">
+        flow_format_id
+        , flow_name, source_data_base,target_data_base,create_date,state,state_date,remark,on_line_flag
+    </sql>
+
+    <select id="selectTableFlowByOnLineFlag" resultType="com.itman.datakit.admin.common.entity.TableFlowFormat">
+        select
+        <include refid="tableFlowColumnList"/>
+        from dk_table_flow_format
+        where state = 1
+        <if test="onLineFlag != -1">
+            and on_line_flag = #{onLineFlag}
+        </if>
+        order by flow_format_id desc
+    </select>
+
+    <select id="selectTableFlowById" resultType="com.itman.datakit.admin.common.entity.TableFlowFormat">
+        select
+        <include refid="tableFlowColumnList"/>
+        from dk_table_flow_format
+        where flow_format_id = #{flowFormatId} and state = 1
+    </select>
+
+    <sql id="tableFlowNodeList">
+        flow_node_id
+        ,flow_format_id,table_name,selected_field_name,selected_parent_field_name,parent_flow_node_id,create_date,state,state_date
+    </sql>
+
+    <select id="selectTableFlowNodeById" resultType="com.itman.datakit.admin.common.entity.TableFlowNode">
+        select
+        <include refid="tableFlowNodeList"/>
+        from dk_table_flow_node
+        where flow_format_id = #{flowFormatId}
+        and state = 1
+    </select>
+
+    <update id="updateTableFlowOnLineFlagById">
+        update dk_table_flow_format
+        set on_line_flag=#{onLineFlag}
+        where flow_format_id = #{flowFormatId}
+          and state = 1
+    </update>
+
+    <insert id="insertTableFlowFormat">
+        insert into dk_table_flow_format (
+        <include refid="tableFlowColumnList"/>
+        )
+        values
+        (#{tableFlowFormat.flowFormatId},
+        #{tableFlowFormat.flowName},
+        #{tableFlowFormat.sourceDataBase},
+        #{tableFlowFormat.targetDataBase},
+        ${sysdate},
+        1,
+        ${sysdate},
+        #{tableFlowFormat.remark},
+        #{tableFlowFormat.onLineFlag})
+    </insert>
+
+    <delete id="deleteTableFlowNodeByFlowFormatId">
+        delete
+        from dk_table_flow_node
+        where flow_format_id = #{flowFormatId}
+    </delete>
+
+
+    <insert id="insertTableFlowNodeList">
+        <if test="dataBaseType == 'oracle'">
+            insert all
+            <foreach collection="tableFlowNodeList" item="iterator" index="index" separator=" ">
+                into dk_table_flow_node (
+                <include refid="tableFlowNodeList"/>
+                )
+                values
+                (#{iterator.flowNodeId},
+                #{iterator.flowFormatId},
+                #{iterator.tableName},
+                #{iterator.selectedFieldName},
+                #{iterator.selectedParentFieldName},
+                #{iterator.parentFlowNodeId},
+                ${sysdate},
+                1,
+                ${sysdate})
+            </foreach>
+            select 1 from dual
+        </if>
+        <if test="dataBaseType != 'oracle'">
+            insert into dk_table_flow_node (
+            <include refid="tableFlowNodeList"/>
+            )
+            values
+            <foreach collection="tableFlowNodeList" item="iterator" index="index" separator=",">
+                (#{iterator.flowNodeId},
+                #{iterator.flowFormatId},
+                #{iterator.tableName},
+                #{iterator.selectedFieldName},
+                #{iterator.selectedParentFieldName},
+                #{iterator.parentFlowNodeId},
+                ${sysdate},
+                1,
+                ${sysdate})
+            </foreach>
+        </if>
+    </insert>
+
+    <update id="updateTableFlowFormatById">
+        update dk_table_flow_format
+        set flow_name=#{tableFlowFormat.flowName},
+            source_data_base=#{tableFlowFormat.sourceDataBase},
+            target_data_base=#{tableFlowFormat.targetDataBase},
+            remark=#{tableFlowFormat.remark}
+        where flow_format_id = #{tableFlowFormat.flowFormatId}
+          and state = 1
+    </update>
+
+    <delete id="deleteTableFlowById">
+        delete
+        from dk_table_flow_format
+        where flow_format_id = #{flowFormatId}
+          and state = 1
+    </delete>
+</mapper>

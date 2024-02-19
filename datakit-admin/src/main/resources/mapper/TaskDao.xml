@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itman.datakit.admin.dao.TaskDao">
+    <sql id="taskInstanceColumnList">
+        task_instance_id
+        ,task_id, create_date,state,state_date,task_msg,host_name,host_ip,run_state,run_state_date
+    </sql>
+
+    <delete id="deleteTaskInstance">
+        delete
+        from dk_task_instance
+        where task_instance_id = #{taskInstanceId}
+    </delete>
+
+    <delete id="deleteTaskResult">
+        delete
+        from dk_task_result
+        where task_instance_id = #{taskInstanceId}
+    </delete>
+
+    <insert id="insertTask">
+        insert into dk_task (
+        <include refid="taskColumnList"/>
+        )
+        values
+        <foreach collection="taskList" item="iterator" index="index" separator=",">
+            (#{iterator.taskId},
+            #{iterator.taskType},
+            #{iterator.aObjectType},
+            #{iterator.aObjectId},
+            #{iterator.bObjectType},
+            #{iterator.bObjectId},
+            #{iterator.remark},
+            #{iterator.orderFlag},
+            #{iterator.repairUrl},
+            ${sysdate},
+            1,
+            ${sysdate},
+            #{iterator.onLineFlag})
+        </foreach>
+    </insert>
+
+
+    <insert id="insertTaskRepair">
+        insert into dk_task_repair(task_repair_id,
+                                   task_instance_id,
+                                   repair_state,
+                                   repair_state_date,
+                                   create_date,
+                                   state,
+                                   state_date)
+        values (#{taskRepair.taskRepairId},
+                #{taskRepair.taskInstanceId},
+                #{taskRepair.repairState},
+                ${sysdate},
+                ${sysdate},
+                1,
+                ${sysdate})
+    </insert>
+
+    <insert id="insertTaskFieldRela">
+        <if test="dataBaseType == 'oracle'">
+            insert all
+            <foreach collection="taskFieldRelaList" item="iterator" index="index" separator=" ">
+                into dk_task_field_rela (
+                task_field_rela_id,
+                task_id,
+                a_object_field_id,
+                b_object_field_id,
+                compare_flag,
+                state,
+                create_date,
+                state_date
+                )
+                values
+                (#{iterator.taskFieldRelaId},
+                #{iterator.taskId},
+                #{iterator.aObjectFieldId},
+                #{iterator.bObjectFieldId},
+                #{iterator.compareFlag},
+                1,
+                ${sysdate},
+                ${sysdate})
+            </foreach>
+            select 1 from dual
+        </if>
+        <if test="dataBaseType != 'oracle'">
+            insert into dk_task_field_rela (
+            task_field_rela_id,
+            task_id,
+            a_object_field_id,
+            b_object_field_id,
+            compare_flag,
+            state,
+            create_date,
+            state_date
+            )
+            values
+            <foreach collection="taskFieldRelaList" item="iterator" index="index" separator=",">
+                (#{iterator.taskFieldRelaId},
+                #{iterator.taskId},
+                #{iterator.aObjectFieldId},
+                #{iterator.bObjectFieldId},
+                #{iterator.compareFlag},
+                1,
+                ${sysdate},
+                ${sysdate})
+            </foreach>
+        </if>
+    </insert>
+
+    <insert id="insertTaskInstance">
+        insert into dk_task_instance (
+        task_instance_id
+        ,task_id,create_date,run_state,run_state_date,task_msg,host_name,host_ip,state,state_date
+        )
+        values
+        <foreach collection="taskInstanceList" item="iterator" index="index" separator=",">
+            (#{iterator.taskInstanceId},
+            #{iterator.taskId},
+            ${sysdate},
+            #{iterator.runState},
+            ${sysdate},
+            #{iterator.taskMsg},
+            #{iterator.hostName},
+            #{iterator.hostIp},
+            1,
+            ${sysdate})
+        </foreach>
+    </insert>
+
+    <select id="selectTaskInstanceById" resultType="com.itman.datakit.admin.common.entity.TaskInstance">
+        select
+        <include refid="taskInstanceColumnList"/>
+        from dk_task_instance
+        where task_instance_id = #{taskInstanceId} and state=1
+    </select>
+
+    <select id="selectTaskInstanceByRunState" resultType="com.itman.datakit.admin.common.entity.TaskInstance">
+        select
+        <include refid="taskInstanceColumnList"/>
+        from dk_task_instance
+        where state=1 and run_state = #{runState}
+        order by create_date ${sqlLimit}
+    </select>
+
+    <select id="selectTaskInstanceByTaskId" resultType="com.itman.datakit.admin.common.entity.TaskInstance">
+        select
+        <include refid="taskInstanceColumnList"/>
+        from dk_task_instance
+        where task_id = #{taskId} and run_state = #{runState} and state=1
+    </select>
+
+    <sql id="taskRepairColumnList">
+        task_repair_id
+        ,task_instance_id,create_date,state,state_date,host_name,host_ip,repair_state,repair_state_date
+    </sql>
+
+    <select id="selectTaskRepairByRepairState" resultType="com.itman.datakit.admin.common.entity.TaskRepair">
+        select
+        <include refid="taskRepairColumnList"/>
+        from dk_task_repair
+        where repair_state = #{repairState} and state=1 order by create_date ${sqlLimit}
+    </select>
+
+    <select id="selectTaskInstanceByCondition" resultType="com.itman.datakit.admin.common.entity.TaskInstance">
+        select
+        <include refid="taskInstanceColumnList"/>
+        from dk_task_instance
+        where state=1
+        <if test="runState != null and runState != -1 ">
+            and run_state = #{runState}
+        </if>
+
+        <if test="beginDate != null and endDate != null ">
+            and create_date between ${beginDate} and ${endDate}
+        </if>
+        order by create_date desc
+    </select>
+
+    <update id="updateTaskInstance">
+        update dk_task_instance
+        set run_state=#{runState},
+        <if test="hostName != null">
+            host_name=#{hostName},
+        </if>
+        <if test="hostIp != null">
+            host_ip=#{hostIp},
+        </if>
+        run_state_date=${sysdate}
+        where task_instance_id = #{taskInstanceId}
+        and run_state = #{oldRunState}
+        and state=1
+    </update>
+
+    <update id="updateTaskRepair">
+        update dk_task_repair
+        set repair_state=#{repairState},
+        <if test="hostName != null">
+            host_name=#{hostName},
+        </if>
+        <if test="hostIp != null">
+            host_ip=#{hostIp},
+        </if>
+        repair_state_date=${sysdate}
+        where task_repair_id = #{taskRepairId}
+        and repair_state = #{oldRepairState}
+        and state=1
+    </update>
+
+    <update id="updateTaskInstanceErrorMsg">
+        update dk_task_instance
+        set run_state=#{runState},
+        <if test="errorMsg != null">
+            task_msg=#{errorMsg},
+        </if>
+        run_state_date=${sysdate}
+        where task_instance_id = #{taskInstanceId}
+        and run_state = #{oldRunState}
+    </update>
+
+    <update id="updateTaskRepairErrorMsg">
+        update dk_task_repair
+        set repair_state=#{repairState},
+        <if test="errorMsg != null">
+            repair_msg=#{errorMsg},
+        </if>
+        state_date=${sysdate}
+        where task_repair_id = #{taskRepairId}
+        and repair_state = #{oldRepairState}
+    </update>
+
+    <sql id="taskColumnList">
+        task_id
+        ,task_type,a_object_type,a_object_id,b_object_type,b_object_id,
+            remark,order_flag,repair_url, create_date, state,state_date,on_line_flag
+    </sql>
+
+    <select id="selectTaskByTaskId" resultType="com.itman.datakit.admin.common.entity.Task">
+        select
+        <include refid="taskColumnList"/>
+        from dk_task
+        where task_id = #{taskId} and state=1
+    </select>
+
+    <select id="selectTaskByTaskType" resultType="com.itman.datakit.admin.common.entity.Task">
+        select
+        <include refid="taskColumnList"/>
+        from dk_task where state=1
+        <if test="taskType != 0 and taskType != -1">
+            and task_type = #{taskType}
+        </if>
+        <if test="taskType == -1">
+            and task_id = #{taskId}
+        </if>
+        order by task_id desc
+    </select>
+
+    <select id="selectTaskByObjectId" resultType="com.itman.datakit.admin.common.entity.Task">
+        select
+        <include refid="taskColumnList"/>
+        from dk_task where state=1
+        <if test="objectRole ==1">
+            and a_object_type = #{objectType} and a_object_id= #{objectId} and on_line_flag = #{onLineFlag}
+        </if>
+        <if test="objectRole ==2">
+            and b_object_type = #{objectType} and b_object_id= #{objectId} and on_line_flag = #{onLineFlag}
+        </if>
+        order by task_id desc
+    </select>
+
+    <update id="updateTaskByTaskId">
+        update dk_task
+        set task_type=#{task.taskType},
+            a_object_type=#{task.aObjectType},
+            a_object_id=#{task.aObjectId},
+            b_object_type=#{task.bObjectType},
+            b_object_id=#{task.bObjectId},
+            on_line_flag=#{task.onLineFlag},
+            remark=#{task.remark},
+            order_flag=#{task.orderFlag},
+            repair_url=#{task.repairUrl}
+        where task_id = #{task.taskId}
+    </update>
+
+    <select id="selectTaskFieldRelaByTaskId"
+            resultType="com.itman.datakit.admin.common.entity.TaskFieldRela">
+        select task_field_rela_id,
+               task_id,
+               a_object_field_id,
+               b_object_field_id,
+               compare_flag
+        from dk_task_field_rela
+        where task_id = #{taskId}
+          and state = 1
+        order by task_field_rela_id
+    </select>
+
+    <sql id="taskResultColumnList">
+        task_result_id
+        ,task_instance_id,task_result,create_date,compare_flag,compare_info,compare_data,repair_state,repair_info,repair_state_date
+    </sql>
+
+    <insert id="insertTaskResult">
+        <if test="dataBaseType == 'oracle'">
+            insert all
+            <foreach collection="taskResultList" item="iterator" index="index" separator=" ">
+                into dk_task_result (
+                <include refid="taskResultColumnList"/>
+                )
+                values
+                (#{iterator.taskResultId},
+                #{iterator.taskInstanceId},
+                #{iterator.taskResult},
+                ${sysdate},
+                #{iterator.compareFlag},
+                #{iterator.compareInfo},
+                #{iterator.compareData},
+                #{iterator.repairState},
+                #{iterator.repairInfo},
+                #{iterator.repairStateDate})
+            </foreach>
+            select 1 from dual
+        </if>
+        <if test="dataBaseType != 'oracle'">
+            insert into dk_task_result (
+            <include refid="taskResultColumnList"/>
+            )
+            values
+            <foreach collection="taskResultList" item="iterator" index="index" separator=",">
+                (#{iterator.taskResultId},
+                #{iterator.taskInstanceId},
+                #{iterator.taskResult},
+                ${sysdate},
+                #{iterator.compareFlag},
+                #{iterator.compareInfo},
+                #{iterator.compareData},
+                #{iterator.repairState},
+                #{iterator.repairInfo},
+                #{iterator.repairStateDate})
+            </foreach>
+        </if>
+    </insert>
+
+    <select id="selectTaskResultById"
+            resultType="com.itman.datakit.admin.common.entity.TaskResult">
+        select
+        <include refid="taskResultColumnList"/>
+        from dk_task_result
+        where task_result_id = #{taskInstanceResultId} and state=1
+    </select>
+
+    <select id="selectTaskResultByTaskInstanceId"
+            resultType="com.itman.datakit.admin.common.entity.TaskResult">
+        select
+        <include refid="taskResultColumnList"/>
+        from dk_task_result
+        where task_instance_id = #{taskInstanceId}
+        <if test="repairState != null">
+            and repair_state=#{repairState}
+        </if>
+        order by task_result_id
+    </select>
+
+    <update id="updateTaskResultRepairInfo">
+        update dk_task_result
+        set repair_state=#{repairState},
+        <if test="repairInfo != null">
+            repair_info=#{repairInfo},
+        </if>
+        repair_state_date=${sysdate},
+        task_repair_id=#{taskRepairId}
+        where task_result_id = #{taskResultId}
+        and repair_state = #{oldRepairState}
+    </update>
+
+    <delete id="deleteTaskByTaskId">
+        delete
+        from dk_task
+        where task_id = #{taskId}
+          and state = 1
+    </delete>
+
+    <delete id="deleteTaskFieldRelaByTaskId">
+        delete
+        from dk_task_field_rela
+        where task_id = #{taskId}
+          and state = 1
+    </delete>
+
+    <delete id="deleteTaskFieldRelaById">
+        delete
+        from dk_task_field_rela
+        where task_field_rela_id = #{taskFieldRelaId}
+          and state = 1
+    </delete>
+
+    <update id="updateTaskFieldRelaById">
+        update dk_task_field_rela
+        set a_object_field_id=#{taskFieldRela.aObjectFieldId},
+            b_object_field_id=#{taskFieldRela.bObjectFieldId},
+            compare_flag=#{taskFieldRela.compareFlag}
+        where task_field_rela_id = #{taskFieldRela.taskFieldRelaId}
+          and state = 1
+    </update>
+
+    <update id="updateTaskOnLineFlagById">
+        update dk_task
+        set on_line_flag=#{onLineFlag}
+        where task_id = #{taskId}
+          and state = 1
+    </update>
+</mapper>

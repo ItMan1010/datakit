@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>文件管理</title>
+
+    <script th:inline="javascript">
+        //捕获浏览刷新事件
+        window.onbeforeunload = function () {
+            document.getElementById("fileForm").submit();
+        };
+
+        function backFileRowsWindow() {
+            window.location.href = '/datakit/fileRows/query?pageNum=1&onLineFlag=-1';
+        }
+
+        function confirmSubmit(fileAction) {
+            document.getElementById('input-file-action').value = fileAction;
+
+            if (document.getElementById('file-base-select-fileType-id').value === "-1") {
+                confirm('请选择文件类型');
+                return false;
+            }
+
+            if (document.getElementById('file-base-select-fileNameType-id').value === "-1") {
+                confirm('请选择文件名称类型');
+                return false;
+            }
+
+            if (document.getElementById('file-base-input-fileNameFormat-id').value.trim().length === 0) {
+                confirm('请输入文件名称');
+                return false;
+            }
+
+            if (document.getElementById('file-base-input-fileNameFormat-localpath').value.trim().length === 0) {
+                confirm('请输入文件所在本地路径');
+                return false;
+            }
+
+            if (document.getElementById('file-base-select-fileBakAction-id').value === "-1") {
+                confirm('请选择文件备份操作');
+                return false;
+            }
+
+            if (document.getElementById('file-base-select-fileType-id').value === "1" &&
+                document.getElementById('body-select-splitFlag-id').value === "-1") {
+                confirm('请选择行体属性:分隔符');
+                return false;
+            }
+
+            if (document.getElementById('body-input-fixBeginLine-id').value.length === 0) {
+                confirm('请输入行体属性：固定开始行');
+                return false;
+            }
+
+            var fileBodyFieldArray = /*[[${fileFormat.fileBody.fileFieldList}]]*/ [];
+            if (fileBodyFieldArray.length === 0) {
+                confirm('请新增行体字段');
+                return false;
+            }
+
+            return true;
+        }
+
+
+        function confirmFtpSubmit(fileAction) {
+            document.getElementById('input-file-action').value = fileAction;
+
+            if (document.getElementById('file-base-input-ftpHost-id').value.trim().length === 0) {
+                confirm('请输入ftp主机IP');
+                return false;
+            }
+
+            if (document.getElementById('file-base-input-ftpPort-id').value.trim().length === 0) {
+                confirm('请输入ftp主机端口');
+                return false;
+            }
+
+            if (document.getElementById('file-base-input-ftpUser-id').value.trim().length === 0) {
+                confirm('请输入ftp登录账号');
+                return false;
+            }
+
+            if (document.getElementById('file-base-input-ftpPasswd-id').value.trim().length === 0) {
+                confirm('请输入ftp登录密码');
+                return false;
+            }
+
+            if (document.getElementById('file-base-input-ftpPath-id').value.trim().length === 0) {
+                confirm('请输入ftp文件路径');
+                return false;
+            }
+
+            return true;
+        }
+
+        function confirmRadio(specialIndexId, specialFieldIndexId) {
+            var fileSpecialArray = /*[[${fileFormat.fileSpecialList}]]*/ [];
+            for (var i = 0; i < fileSpecialArray.length; i++) {
+                if (i === specialIndexId) {
+                    for (var j = 0; j < fileSpecialArray[i].fileFieldList.length; j++) {
+                        if (j === specialFieldIndexId) {
+                            document.getElementById("fileSpecialList_" + i + "_fileFieldList_" + j).value = 1;
+                            document.getElementById("fileSpecialList_" + i + "_fileFieldList_" + j).checked = true;
+                        } else {
+                            document.getElementById("fileSpecialList_" + i + "_fileFieldList_" + j).value = 0;
+                            document.getElementById("fileSpecialList_" + i + "_fileFieldList_" + j).checked = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        function showBodyInputFixWidth() {
+            var fileFieldArray = /*[[${fileFormat.fileBody.fileFieldList}]]*/ [];
+
+            if (document.getElementById("body-select-splitFlag-id").value === "1") {
+                document.getElementById("body-field-table-th-fixWidth").style.display = "block";
+                for (var i = 0; i < fileFieldArray.length; i++) {
+                    document.getElementById("body-field-table-td-fixWidth-" + i).style.display = "block";
+                }
+            } else {
+                document.getElementById("body-field-table-th-fixWidth").style.display = "none";
+                for (var i = 0; i < fileFieldArray.length; i++) {
+                    document.getElementById("body-field-table-td-fixWidth-" + i).style.display = "none";
+                }
+            }
+        }
+
+        function showSpecialInputFixWidth(specialId) {
+            var selectValue = document.getElementById("special-select-splitFlag-id-" + specialId).value;
+            var fileSpecialArray = /*[[${fileFormat.fileSpecialList}]]*/ [];
+            var fileFieldArray;
+            for (var j = 0; j < fileSpecialArray.length; j++) {
+                if (fileSpecialArray[j].fileSpecialId === specialId) {
+                    fileFieldArray = fileSpecialArray[j].fileFieldList;
+                    break;
+                }
+            }
+
+            if (selectValue === "1") {
+                document.getElementById("special-field-table-th-fixWidth-" + specialId).style.display = "block";
+                for (var i = 0; i < fileFieldArray.length; i++) {
+                    document.getElementById("special-field-table-td-fixWidth-" + i).style.display = "block";
+                }
+            } else {
+                document.getElementById("special-field-table-th-fixWidth-" + specialId).style.display = "none";
+                for (var i = 0; i < fileFieldArray.length; i++) {
+                    document.getElementById("special-field-table-td-fixWidth-" + i).style.display = "none";
+                }
+            }
+        }
+
+        function addFileSpecial() {
+            document.getElementById('input-file-special-action').value = 1;
+        }
+
+        function deleteFileSpecial(specialIndex) {
+            document.getElementById('input-file-special-action').value = 2;
+            document.getElementById('input-file-special-index').value = specialIndex;
+        }
+
+        function addFileSpecialField(specialIndex) {
+            document.getElementById('input-file-special-field-action').value = 1;
+            document.getElementById('input-file-special-index').value = specialIndex;
+        }
+
+        function deleteFileSpecialField(specialIndex, specialFieldIndex) {
+            document.getElementById('input-file-special-field-action').value = 2;
+            document.getElementById('input-file-special-index').value = specialIndex;
+            document.getElementById('input-file-special-field-index').value = specialFieldIndex;
+        }
+
+        function addFileBodyField() {
+            document.getElementById('input-file-body-field-action').value = 1;
+        }
+
+        function deleteFileBodyField(bodyFieldIndex) {
+            document.getElementById('input-file-body-field-action').value = 2;
+            document.getElementById('input-file-body-field-index').value = bodyFieldIndex;
+        }
+
+
+        function showBaseSelectFileType() {
+            var fileSpecialArray = /*[[${fileFormat.fileSpecialList}]]*/ [];
+            if (document.getElementById("file-base-select-fileType-id").value === "1") {
+                document.getElementById("body-select-splitFlag-id").style.display = "inline-block";
+                document.getElementById("body-span-splitFlag-id").style.display = "inline-block";
+                for (var i = 0; i < fileSpecialArray.length; i++) {
+                    document.getElementById("special-span-splitFlag-id-" + i).style.display = "inline-block";
+                    document.getElementById("special-select-splitFlag-id-" + i).style.display = "inline-block";
+                }
+            } else {
+                document.getElementById("body-select-splitFlag-id").style.display = "none";
+                document.getElementById("body-span-splitFlag-id").style.display = "none";
+                for (var i = 0; i < fileSpecialArray.length; i++) {
+                    document.getElementById("special-span-splitFlag-id-" + i).style.display = "none";
+                    document.getElementById("special-select-splitFlag-id-" + i).style.display = "none";
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <form id="fileForm" method="get" th:action="@{/datakit/file/form/operate}" th:object="${fileFormat}">
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-file-action"
+               th:value="${fileFormat.fileAction}"
+               th:field="*{fileAction}"/>
+
+        <input type="hidden"
+               th:id="input-file-special-index"
+               th:value="${fileFormat.fileSpecialIndex}"
+               th:field="*{fileSpecialIndex}"/>
+
+        <input type="hidden" th:if="${viewFlag==2}"
+               th:id="input-file-special-action"
+               th:value="${fileFormat.fileSpecialAction}"
+               th:field="*{fileSpecialAction}"/>
+
+        <input type="hidden"
+               th:id="input-file-special-field-index"
+               th:value="${fileFormat.fileSpecialFieldIndex}"
+               th:field="*{fileSpecialFieldIndex}"/>
+
+        <input type="hidden"
+               th:id="input-file-special-field-action"
+               th:value=" ${fileFormat.fileSpecialFieldAction}"
+               th:field="*{fileSpecialFieldAction}"/>
+
+        <input type="hidden"
+               th:id="input-file-body-field-action"
+               th:value="${fileFormat.fileBodyFieldAction}"
+               th:field="*{fileBodyFieldAction}"/>
+
+        <input type="hidden"
+               th:id="input-file-body-field-index"
+               th:value="${fileFormat.fileBodyFieldIndex}"
+               th:field="*{fileBodyFieldIndex}"/>
+
+        <div th:if="${viewFlag==1}" style="width:1000px;margin:20px auto;text-align: left;">
+            基本信息：
+            <br/>
+            &emsp;&emsp;文件ID : <input style="width: 30px;" th:value="${fileFormat.fileFormatId}" readonly="readonly"
+                                        type="text"/>
+            &emsp;文件类型 : <input style="width: 80px;" th:value="${fileFormat.fileTypeName}" readonly="readonly"
+                                    type="text"/>
+            &emsp;名称类型 : <input style="width: 80px;" th:value="${fileFormat.fileNameTypeName}" readonly="readonly"
+                                    type="text"/>
+            &emsp;文件名称 : <input style="width: 200px;" th:value="${fileFormat.fileNameFormat}" readonly="readonly"
+                                    type="text"/>
+            <br/>
+            &emsp;&emsp;本地目录 : <input style="width: 200px;" th:value="${fileFormat.localPath}" readonly="readonly"
+                                          type="text"/>
+            &emsp;备份操作 : <input style="width: 60px;" th:value="${fileFormat.fileBakActionName}"
+                                    readonly="readonly"
+                                    type="text"/>
+            &emsp;备份目录 : <input style="width: 200px;" th:value="${fileFormat.fileBakPath}" readonly="readonly"
+                                    type="text"/>
+            <br/>
+            &emsp;&emsp;ftp地址 : <input style="width: 100px;" th:value="${fileFormat.ftpHost}" readonly="readonly"
+                                         type="text"/>
+            &emsp;ftp端口 : <input style="width: 30px;" th:value="${fileFormat.ftpPort}" readonly="readonly"
+                                   type="text"/>
+            &emsp;ftp账号 : <input style="width: 60px;" th:value="${fileFormat.ftpUser}" readonly="readonly"
+                                   type="text"/>
+            &emsp;ftp密码 : <input style="width: 60px;" th:value="${fileFormat.ftpPasswd}" readonly="readonly"
+                                   type="password"/>
+            &emsp;ftp路径 : <input style="width: 200px;" th:value="${fileFormat.ftpPath}" readonly="readonly"
+                                   type="text"/>
+            <br/>
+            &emsp;&emsp;创建时间 : <input readonly="readonly" type="text"
+                                          th:value="${#dates.format(fileFormat.createDate, 'yyyy-MM-dd HH:mm:ss')}"/>
+            &emsp;发布状态 : <input style="width: 30px;" th:value="${fileFormat.onLineFlagName}" readonly="readonly"
+                                    type="text"/>
+        </div>
+
+        <div th:if="${viewFlag==2}" style="width:1000px;margin:20px auto;text-align: left;">
+            基本信息：
+            <br/>
+            &emsp;&emsp;文件ID :
+            <input th:if="${fileFormat.fileFormatId!=-1}" style="width: 30px; background-color: lightgray"
+                   th:value="${fileFormat.fileFormatId}"
+                   th:field="*{fileFormatId}"
+                   readonly="readonly"
+                   type="text"/>
+            <input th:if="${fileFormat.fileFormatId==-1}" style="width: 30px; background-color: lightgray"
+                   readonly="readonly" type="text"/>
+            <input th:if="${fileFormat.fileFormatId==-1}" style="width: 30px; background-color: lightgray"
+                   th:field="*{fileFormatId}"
+                   readonly="readonly" type="hidden"/>
+            &emsp;文件类型 :
+            <select th:id="file-base-select-fileType-id"
+                    th:field="*{fileType}"
+                    th:onchange="showBaseSelectFileType()">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${fileTypeNameMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            &emsp;名称类型 :
+            <select th:id="file-base-select-fileNameType-id"
+                    th:field="*{fileNameType}">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${fileNameTypeNameMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            &emsp;文件名称 : <input th:id="file-base-input-fileNameFormat-id"
+                                    style="width: 200px;"
+                                    th:value="${fileFormat.fileNameFormat}"
+                                    th:field="*{fileNameFormat}"
+                                    type="text"/>
+            <br/>
+            &emsp;&emsp;本地目录 : <input th:id="file-base-input-fileNameFormat-localpath"
+                                          style="width: 200px;"
+                                          th:value="${fileFormat.localPath}"
+                                          th:field="*{localPath}"
+                                          type="text"/>
+            &emsp;备份操作 :
+            <select th:id="file-base-select-fileBakAction-id"
+                    th:field="*{fileBakAction}">
+                <option th:value="1" th:text="不处理"></option>
+                <option th:each="entry : ${fileBakActionNameMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            &emsp;备份目录 : <input style="width: 200px;" th:value="${fileFormat.fileBakPath}"
+                                    th:field="*{fileBakPath}"
+                                    type="text"/>
+            <br/>
+            &emsp;&emsp;ftp地址 : <input th:id="file-base-input-ftpHost-id"
+                                         style="width: 100px;"
+                                         th:value="${fileFormat.ftpHost}"
+                                         th:field="*{ftpHost}"
+                                         type="text"/>
+            &emsp;ftp端口 : <input th:id="file-base-input-ftpPort-id"
+                                   style="width: 30px;" th:value="${fileFormat.ftpPort}" th:field="*{ftpPort}"
+                                   type="text"/>
+            &emsp;ftp账号 : <input style="width: 60px;" th:id="file-base-input-ftpUser-id"
+                                   th:value="${fileFormat.ftpUser}"
+                                   th:field="*{ftpUser}"
+                                   type="text"/>
+            &emsp;ftp密码 : <input style="width: 60px;" th:id="file-base-input-ftpPasswd-id"
+                                   th:value="${fileFormat.ftpPasswd}"
+                                   th:field="*{ftpPasswd}"
+                                   type="text"/>
+            &emsp;ftp路径 : <input style="width: 200px;" th:id="file-base-input-ftpPath-id"
+                                   th:value="${fileFormat.ftpPath}"
+                                   th:field="*{ftpPath}"
+                                   type="text"/>
+        </div>
+
+        <div th:if="${viewFlag==1 and fileFormat.fileBody==null}"
+             style="width:1000px;margin:20px auto;text-align: left;">
+            行体属性：<span>未配置</span>
+        </div>
+
+        <div th:if="${viewFlag==1 and fileFormat.fileBody!=null}"
+             style="width:1000px;margin:20px auto;text-align: left;">
+            行体属性：
+            <br/>
+            &emsp;&emsp;属性ID : <input style="width: 30px;" th:value="${fileFormat.fileBody.fileBodyId}"
+                                        readonly="readonly" type="text"/>
+            <span th:if="${fileFormat.fileType==1}">&emsp;分隔符 : </span><input th:if="${fileFormat.fileType==1}"
+                                                                                 style="width: 60px;"
+                                                                                 th:value="${fileFormat.fileBody.splitFlagName}"
+                                                                                 readonly="readonly"
+                                                                                 type="text"/>
+            &emsp;固定开始行 : <input style="width: 30px;" th:value="${fileFormat.fileBody.fixBeginLine}"
+                                      readonly="readonly"
+                                      type="text"/>
+            <br/>
+            &emsp;&emsp;创建时间 : <input readonly="readonly" type="text"
+                                          th:value="${#dates.format(fileFormat.fileBody.createDate, 'yyyy-MM-dd HH:mm:ss')}"/>
+            <br/>
+            &emsp;&emsp;字段信息：
+            <table style="width:600px;margin:auto auto;">
+                <thead>
+                <tr>
+                    <th>字段ID</th>
+                    <th>字段名称</th>
+                    <th th:if="${fileFormat.fileBody.splitFlag==1}">固定长度</th>
+                    <th>字段位移</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="iterator,itemStat : ${fileFormat.fileBody.fileFieldList}">
+                    <td th:text="${iterator.fileFieldId}"></td>
+                    <td th:text="${iterator.fieldName}"></td>
+                    <td th:if="${fileFormat.fileBody.splitFlag==1}"
+                        th:text="${iterator.fixWidth}"></td>
+                    <td th:text="${iterator.position}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${viewFlag==2}"
+             style="width:1000px;margin:20px auto;text-align: left;">
+            行体属性：
+            <br/>
+            &emsp;&emsp;属性ID :
+            <input th:if="${fileFormat.fileBody.fileBodyId!=-1}" style="width: 30px;background-color: lightgray"
+                   th:value="${fileFormat.fileBody.fileBodyId}"
+                   th:field="*{fileBody.fileBodyId}"
+                   readonly="readonly" type="text"/>
+            <input th:if="${fileFormat.fileBody.fileBodyId==-1}" style="width: 30px;background-color: lightgray"
+                   readonly="readonly" type="text"/>
+            <input th:if="${fileFormat.fileBody.fileBodyId==-1}" style="width: 30px;background-color: lightgray"
+                   th:field="*{fileBody.fileBodyId}"
+                   readonly="readonly" type="hidden"/>
+            <span th:if="${fileFormat.fileType==1}"
+                  th:id="body-span-splitFlag-id">&emsp;分隔符 : </span>
+            <select th:if="${fileFormat.fileType==1}"
+                    th:id="body-select-splitFlag-id"
+                    th:field="*{fileBody.splitFlag}"
+                    th:onchange="showBodyInputFixWidth()">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${splitFlagNameMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            <span th:if="fileFormat.fileType!=1"
+                  th:id="body-span-splitFlag-id" style="display: none;">&emsp;分隔符 : </span>
+            <select th:if="fileFormat.fileType!=1"
+                    th:id="body-select-splitFlag-id"
+                    th:field="*{fileBody.splitFlag}"
+                    th:onchange="showBodyInputFixWidth()"
+                    style="display: none;">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${splitFlagNameMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            &emsp;固定开始行 : <input
+                th:id="body-input-fixBeginLine-id"
+                style="width: 30px;" th:value="${fileFormat.fileBody.fixBeginLine}"
+                th:field="*{fileBody.fixBeginLine}"
+                type="number" min="1" max="128"/>
+            <br/>
+            &emsp;&emsp;字段信息：
+            <button th:onclick="addFileBodyField()">新增行</button>
+            <table style="width:600px;margin:auto auto;">
+                <thead>
+                <tr>
+                    <th>字段ID</th>
+                    <th>字段名称</th>
+                    <th th:if="${fileFormat.fileBody.splitFlag!=1}"
+                        th:id="body-field-table-th-fixWidth"
+                        style="display: none;">固定长度
+                    </th>
+                    <th th:if="${fileFormat.fileBody.splitFlag==1}"
+                        th:id="body-field-table-th-fixWidth"
+                        style="display: block;">固定长度
+                    </th>
+                    <th>字段占位</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="iterator,itemStat : ${fileFormat.fileBody.fileFieldList}">
+                    <td>
+                        <input th:if="${iterator.fileFieldId != -1}"
+                               th:field="*{fileBody.fileFieldList[__${itemStat.index}__].fileFieldId}"
+                               style="width:30px;background-color: lightgray"
+                               readonly="readonly"
+                               type="text"/>
+                        <input th:if="${iterator.fileFieldId == -1}"
+                               style="width:30px;background-color: lightgray"
+                               readonly="readonly"
+                               type="text"/>
+                        <input th:if="${iterator.fileFieldId == -1}"
+                               th:field="*{fileBody.fileFieldList[__${itemStat.index}__].fileFieldId}"
+                               readonly="readonly"
+                               type="hidden"/>
+                    </td>
+                    <td>
+                        <input th:field="*{fileBody.fileFieldList[__${itemStat.index}__].fieldName}"
+                               type="text"/>
+                    </td>
+                    <td th:if="${fileFormat.fileBody.splitFlag!=1}"
+                        th:id="body-field-table-td-fixWidth-+ ${itemStat.index}"
+                        style="display: none;">
+                        <input th:field="*{fileBody.fileFieldList[__${itemStat.index}__].fixWidth}"
+                               type="number" min="0" max="128"/>
+                    </td>
+                    <td th:if="${fileFormat.fileBody.splitFlag==1}"
+                        th:id="body-field-table-td-fixWidth-+ ${itemStat.index}"
+                        style="display: block;">
+                        <input th:field="*{fileBody.fileFieldList[__${itemStat.index}__].fixWidth}"
+                               type="number" min="0" max="128"/>
+                    </td>
+                    <td>
+                        <input th:field="*{fileBody.fileFieldList[__${itemStat.index}__].position}"
+                               type="number" min="1" max="128"/>
+                    </td>
+                    <td>
+                        <button th:onclick="deleteFileBodyField([[${itemStat.index}]])">删除</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="width:1000px;margin:20px auto 0px auto;text-align: left;">
+            特殊行配置：
+            <button th:if="${viewFlag==2}" th:onclick="addFileSpecial()">新增</button>
+        </div>
+
+        <div th:if="${viewFlag==1 and fileFormat.fileSpecialList!=null}"
+             th:each="iterator,itemStat : ${fileFormat.fileSpecialList}"
+             style="width:1000px;margin:10px auto;text-align: left;">
+            特殊行属性：【<span th:text="${itemStat.index+1}"></span>】
+            <br/>
+            &emsp;&emsp;属性ID : <input style="width: 30px;" th:value="${iterator.fileSpecialId}" readonly="readonly"
+                                        type="text"/>
+            <span th:if="${fileFormat.fileType==1}">&emsp;分隔符 :</span>
+            <input th:if="${fileFormat.fileType==1}" style="width: 40px;" th:value="${iterator.splitFlagName}"
+                   readonly="readonly"
+                   type="text"/>
+            &emsp;固定行位 : <input style="width: 30px;" th:value="${iterator.fixLinePosition}" readonly="readonly"
+                                    type="text"/>
+            &emsp;备注 : <input th:value="${iterator.remark}" readonly="readonly" type="text"/>
+            <br/>
+            &emsp;&emsp;创建时间 : <input readonly="readonly" type="text"
+                                          th:value="${#dates.format(iterator.createDate, 'yyyy-MM-dd HH:mm:ss')}"/>
+            <br/>
+            &emsp;&emsp;字段信息：
+            <br/>
+            <table style="width:600px;margin:auto auto;">
+                <thead>
+                <tr>
+                    <th>字段ID</th>
+                    <th>字段名称</th>
+                    <th th:if="${iterator.splitFlag==1}">固定长度</th>
+                    <th>字段位移</th>
+                    <th>文件行数标志</th>
+                    <th>汇总字段关联</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="iterator2 : ${iterator.fileFieldList}">
+                    <td th:text="${iterator2.fileFieldId}"></td>
+                    <td th:text="${iterator2.fieldName}"></td>
+                    <td th:if="${iterator.splitFlag==1}" th:text="${iterator2.fixWidth}"></td>
+                    <td th:text="${iterator2.position}"></td>
+                    <td>
+                        <input th:checked="${iterator2.sumLineFlag==1}"
+                               th:readonly="readonly"
+                               type="radio"/>
+                    </td>
+                    <td th:text="${iterator2.sumFieldName}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${viewFlag==2}"
+             th:each="iterator,itemStat : ${fileFormat.fileSpecialList}"
+             style="width:1000px;margin:10px auto;text-align: left;">
+            特殊行属性：【<span th:text="${itemStat.index+1}"></span>】
+            <button th:onclick="deleteFileSpecial([[${itemStat.index}]])">删除</button>
+            <br/>
+            &emsp;&emsp;属性ID : <input style="width: 30px;background-color: lightgray"
+                                        th:value="${iterator.fileSpecialId}"
+                                        th:field="*{fileSpecialList[__${itemStat.index}__].fileSpecialId}"
+                                        readonly="readonly"
+                                        type="text"/>
+            <span th:if="${fileFormat.fileType==1}"
+                  th:id="special-span-splitFlag-id-+${itemStat.index}">&emsp;分隔符 :</span>
+            <select th:if="${fileFormat.fileType==1}"
+                    th:id="special-select-splitFlag-id-+${itemStat.index}"
+                    th:field="*{fileSpecialList[__${itemStat.index}__].splitFlag}"
+                    onchange="showSpecialInputFixWidth(0)">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${splitFlagNameMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            <span th:if="${fileFormat.fileType!=1}"
+                  th:id="special-span-splitFlag-id-+${itemStat.index}"
+                  style="display: none;">&emsp;分隔符 :</span>
+            <select th:if="${fileFormat.fileType!=1}"
+                    style="display: none;"
+                    th:id="special-select-splitFlag-id-+${itemStat.index}"
+                    th:field="*{fileSpecialList[__${itemStat.index}__].splitFlag}"
+                    onchange="showSpecialInputFixWidth(0)">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${splitFlagNameMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            &emsp;固定行位 : <input style="width: 30px;" th:value="${iterator.fixLinePosition}"
+                                    th:field="*{fileSpecialList[__${itemStat.index}__].fixLinePosition}"
+                                    type="number" min="-1"/>
+            &emsp;备注 : <input th:value="${iterator.remark}"
+                                th:field="*{fileSpecialList[__${itemStat.index}__].remark}"
+                                type="text"/>
+            <br/>
+            &emsp;&emsp;字段信息：
+            <button th:onclick="addFileSpecialField([[${itemStat.index}]])">新增行</button>
+            <table style="width:600px;margin:auto auto;">
+                <thead>
+                <tr>
+                    <th>字段ID</th>
+                    <th>字段名称</th>
+                    <th th:if="${fileFormat.fileSpecialList[__${itemStat.index}__].splitFlag!=1}"
+                        th:id="special-field-table-th-fixWidth-+${itemStat.index}"
+                        style="display: none;">
+                        固定长度
+                    </th>
+                    <th th:if="${fileFormat.fileSpecialList[__${itemStat.index}__].splitFlag==1}"
+                        th:id="special-field-table-th-fixWidth-+${itemStat.index}"
+                        style="display: block;">
+                        固定长度
+                    </th>
+                    <th>字段占位</th>
+                    <th>文件行数标志</th>
+                    <th>汇总字段关联</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="iterator2,itemStat2 : ${iterator.fileFieldList}">
+                    <td>
+                        <input th:if="${iterator2.fileFieldId != -1}"
+                               style="width:30px;background-color: lightgray"
+                               th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].fileFieldId}"
+                               readonly="readonly"
+                               type="text"/>
+                        <input th:if="${iterator2.fileFieldId == -1}"
+                               style="width:30px;background-color: lightgray"
+                               readonly="readonly"
+                               type="text"/>
+                        <input th:if="${iterator2.fileFieldId == -1}"
+                               th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].fileFieldId}"
+                               readonly="readonly"
+                               type="hidden"/>
+                    </td>
+                    <td>
+                        <input th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].fieldName}"
+                               type="text"/>
+                    </td>
+                    <td th:if="${fileFormat.fileSpecialList[__${itemStat.index}__].splitFlag!=1}"
+                        th:id="special-field-table-td-fixWidth-+ ${itemStat2.index}"
+                        style="display: none;">
+                        <input th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].fixWidth}"
+                               type="number" min="0" max="128"/>
+                    </td>
+                    <td th:if="${fileFormat.fileSpecialList[__${itemStat.index}__].splitFlag==1}"
+                        th:id="special-field-table-td-fixWidth-+ ${itemStat2.index}"
+                        style="display: block;">
+                        <input th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].fixWidth}"
+                               type="number" min="0" max="128"/>
+                    </td>
+                    <td>
+                        <input th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].position}"
+                               type="number" min="1" max="128"/>
+                    </td>
+                    <td>
+                        <input th:id="fileSpecialList_+${itemStat.index}+_fileFieldList_+${itemStat2.index}"
+                               th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].sumLineFlag}"
+                               th:value="1"
+                               th:onclick="confirmRadio([[${itemStat.index}]],[[${itemStat2.index}]])"
+                               type="radio"/>
+                    </td>
+                    <td>
+                        <input th:field="*{fileSpecialList[__${itemStat.index}__].fileFieldList[__${itemStat2.index}__].sumFieldName}"
+                               type="text"/>
+                    </td>
+                    <td>
+                        <button th:onclick="deleteFileSpecialField([[${itemStat.index}]],[[${itemStat2.index}]])">删除
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="width:1000px;margin:20px auto;text-align: center;">
+            <input th:if="${viewFlag==2}" type="submit" value="保存" th:onclick="return confirmSubmit(1);"/>
+            &emsp;
+            <input th:if="${viewFlag==2}" type="reset" value="重置"/>
+            &emsp;
+            <input th:if="${viewFlag==2}" type="submit" value="文件校验" th:onclick="return confirmSubmit(2);"/>
+            &emsp;
+            <input th:if="${viewFlag==2}" type="submit" value="FTP调测" th:onclick="return confirmFtpSubmit(3);"/>
+            &emsp;
+            <button th:onclick="backFileRowsWindow();return false;">关闭</button>
+        </div>
+    </form>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+</body>
+</html>

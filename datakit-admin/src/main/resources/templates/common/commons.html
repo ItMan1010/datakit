@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>公共页面片段</title>
+</head>
+
+<body>
+
+<div th:fragment="fragment-name" id="fragment-id">
+    <span>公共页面片段</span>
+</div>
+
+<div th:fragment="fragment-result(resultCode,resultMessage,href)">
+    <input type="hidden" id="input-resultCode" th:value="${resultCode}"/>
+    <input type="hidden" id="input-resultMessage" th:value="${resultMessage}"/>
+    <input type="hidden" id="input-resultHref" th:value="${resultHref}"/>
+
+    <script th:inline="javascript">
+        // 在页面加载完成后执行该函数
+        window.onload = function () {
+            // 弹出提示框
+            if (document.getElementById('input-resultCode').value == -1 || document.getElementById('input-resultCode').value == -2) {
+                if (confirm('提示:' + document.getElementById('input-resultMessage').value)) {
+                    if (document.getElementById('input-resultHref').value != 'null') {
+                        window.location.href = document.getElementById('input-resultHref').value;
+                    }
+                }
+            }
+        };
+    </script>
+</div>
+
+<!-- 展示页码 -->
+<div th:fragment="fragment-page(urlPrefix,urlSuffix)">
+    <a class="page_number" th:if="${pageInfo.hasPreviousPage}"
+       th:href="@{${urlPrefix}+'1'+${urlSuffix}}">首页</a>
+    <a class="page_number" th:if="${pageInfo.hasPreviousPage}"
+       th:href="@{${urlPrefix}+${pageInfo.prePage}+${urlSuffix}}">上一页</a>
+    <span th:each="num : ${pageInfo.navigatepageNums}">
+                <a class="page_number" id="now" th:if="${pageInfo.pageNum==num}"
+                   th:href="@{${urlPrefix} + ${num}+${urlSuffix}}"
+                   th:text="'[' + ${num} + ']'"></a>
+                <a class="page_number" th:if="${pageInfo.pageNum!=num}"
+                   th:href="@{${urlPrefix} + ${num}+${urlSuffix}}"
+                   th:text="${num}"></a>
+            </span>
+    <a class="page_number" th:if="${pageInfo.hasNextPage}"
+       th:href="@{${urlPrefix}+${pageInfo.nextPage}+${urlSuffix}}">下一页</a>
+    <a class="page_number" th:if="${pageInfo.hasNextPage}"
+       th:href="@{${urlPrefix}+${pageInfo.pages}+${urlSuffix}}">尾页</a>
+</div>
+
+<div th:fragment="subTableFlowNodeSelect">
+    <div style="width:800px">【<span th:text="${child.tableName}"></span>】: <span
+            th:text="${child.selectedFieldName}"></span>
+        <span th:if="${child.parentFlowNodeId!=-1}">==</span>
+        <span th:if="${child.parentFlowNodeId!=-1}" th:text="${child.selectedParentFieldName}"></span>
+    </div>
+    <ul th:if="${child.children}">
+        <li th:each="child:${child.children}" th:include="common/commons::subTableFlowNodeSelect"></li>
+    </ul>
+</div>
+
+<div th:fragment="subTableFlowNodeEdit">
+    <div style="width:800px">【<span th:text="${child.tableName}"></span>】:
+        <select th:id="'select-flow-node-id-'+${child.flowNodeId}">
+            <option th:value="${child.selectedFieldName}" th:text="${child.selectedFieldName}"></option>
+            <option th:each="iterator : ${child.fieldNameList}" th:value="${iterator}" th:text="${iterator}"></option>
+        </select>
+        <span th:if="${child.parentFlowNodeId!=-1}">==</span>
+        <select th:if="${child.parentFlowNodeId!=-1}" th:id="'select-parent-flow-node-id-'+${child.flowNodeId}">
+            <option th:value="${child.selectedParentFieldName}" th:text="${child.selectedParentFieldName}"></option>
+            <option th:each="iterator : ${child.parentFieldNameList}" th:value="${iterator}"
+                    th:text="${iterator}"></option>
+        </select>
+        <button th:onclick="confirmFlowNode('add',[[${child.flowNodeId}]]);" th:style="'background-color: lightgray'">
+            add
+        </button>
+        <button th:onclick="confirmFlowNode('del',[[${child.flowNodeId}]]);" th:style="'background-color: lightgray'">
+            del
+        </button>
+    </div>
+    <ul th:if="${child.children}">
+        <li th:each="child,itemStat:${child.children}"
+            th:include="common/commons::subTableFlowNodeEdit"></li>
+    </ul>
+</div>
+
+<nav th:fragment="navbar">
+    <div class="navbar-div-left">
+        <div style="border:1px solid black;text-align:center;margin:20px 20px;background-color:darkgray;font-weight: bold">
+            datakit
+        </div>
+        <ul>
+            <li><a th:href="@{/datakit/taskInstanceRows/query?pageNum=1}">任务实例</a></li>
+            <li><a th:href="@{/datakit/taskRows/query?pageNum=1}">任务管理</a></li>
+            <li><a th:href="@{/datakit/task/query?viewFlag=2}">任务配置</a></li>
+            <li><a th:href="@{/datakit/task/object}">任务对象</a>
+                <ul th:id="object-ul-id">
+                    <li><a th:href="@{/datakit/fileRows/query?pageNum=1&onLineFlag=-1}">文件</a></li>
+                    <li><a th:href="@{/datakit/tableRows/query?pageNum=1&onLineFlag=-1}">表</a></li>
+                    <li><a th:href="@{/datakit/tableFlowRows/query?pageNum=1&onLineFlag=-1}">数据流</a>
+                </ul>
+            </li>
+            <li><a th:href="@{/datakit/table/transform/get}">库表迁移</a>
+        </ul>
+    </div>
+
+    <script th:inline="javascript">
+        function confirmCancel() {
+            window.location.href = '/datakit/index';
+        }
+    </script>
+
+    <div class="navbar-div-right-top">
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        <span style="background-color: darkgray;font-weight: bold">  welcome to use datakit !  </span>
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        <button th:onclick="confirmCancel()">注销</button>
+    </div>
+</nav>
+</body>
+</html>

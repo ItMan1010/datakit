@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>对象表管理</title>
+
+    <script th:inline="javascript">
+        function backTableRowsWindow() {
+            window.location.href = '/datakit/tableRows/query?pageNum=1';
+        }
+
+        function confirmSubmit(tableAction) {
+            document.getElementById('input-table-action').value = tableAction;
+            if (document.getElementById('input-tableName-id').value.trim().length === 0) {
+                confirm('请先输入表名称');
+                return false;
+            }
+
+            if (document.getElementById('select-dataBaseMap-id').value === "-1") {
+                confirm('请先选择数据源');
+                return false;
+            }
+
+            if (tableAction != 4) {
+                var tableFieldArray = /*[[${tableFormat.tableFieldList}]]*/ []
+                if (tableFieldArray.length === 0) {
+                    confirm('请新增表字段名称');
+                    return false;
+                }
+
+                for (var i = 0; i < tableFieldArray.length; i++) {
+                    if (document.getElementById('each-input-fieldName-' + i).value.trim().length === 0) {
+                        confirm('请输入字段名称');
+                        return false;
+                    }
+
+                    if (document.getElementById('each-select-fieldType-' + i).value.trim() === '-1') {
+                        confirm('请选择字段类型');
+                        return false;
+                    }
+
+                    if (document.getElementById('each-select-fieldType-' + i).value == 6 &&
+                        document.getElementById('each-input-fieldLength-' + i).value < 1) {
+                        confirm('请输入字段长度');
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function addTableField() {
+            document.getElementById('input-table-field-action').value = 1;
+        }
+
+        function deleteTableField(tableFieldIndex) {
+            document.getElementById('input-table-field-action').value = 2;
+            document.getElementById('input-table-field-index').value = tableFieldIndex;
+        }
+    </script>
+
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <form method="get" th:action="@{/datakit/table/form/operate}" th:object="${tableFormat}">
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-table-action"
+               th:value="${tableFormat.tableAction}"
+               th:field="*{tableAction}"/>
+
+        <input type="hidden"
+               th:id="input-table-field-index"
+               th:value="${tableFormat.tableFieldIndex}"
+               th:field="*{tableFieldIndex}"/>
+
+        <input th:if="${viewFlag==2}" type="hidden"
+               th:id="input-table-field-action"
+               th:value="${tableFormat.tableFieldAction}"
+               th:field="*{tableFieldAction}"/>
+
+        <div th:if="${viewFlag==1}" style="width:1000px;margin:20px auto;text-align: left;">
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;基本信息：
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            表ID : <input th:value="${tableFormat.tableFormatId}"
+                          readonly="readonly" type="text" th:size="5"/>
+            表名称 : <input th:value="${tableFormat.tableName}" readonly="readonly" type="text"/>
+            过滤条件 : <input th:value="${tableFormat.tableWhere}" readonly="readonly" type="text"/>
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            数据源 : <select th:field="*{dataBase}" readonly="readonly">
+            <option th:value="-1" th:text="请选择"></option>
+            <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                    th:text="${entry.value}"></option>
+        </select>
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            创建时间 : <input readonly="readonly" type="text"
+                              th:value="${#dates.format(tableFormat.createDate, 'yyyy-MM-dd HH:mm:ss')}"/>
+            发布状态 : <input th:value="${tableFormat.getOnLineFlagName()}" readonly="readonly" type="text"
+                              th:size="4"/>
+        </div>
+        <div th:if="${viewFlag==2}" style="width:1000px;margin:20px auto;text-align: left;">
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;基本信息：
+            <br>
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            表ID :<input th:if="${tableFormat.tableFormatId!=-1}" th:field="*{tableFormatId}"
+                         readonly="readonly" type="text"
+                         th:style="'background-color: lightgray'" th:size="5"/>
+            <input th:if="${tableFormat.tableFormatId==-1}"
+                   readonly="readonly" type="text"
+                   th:style="'background-color: lightgray'"/>
+            <input th:if="${tableFormat.tableFormatId==-1}" th:field="*{tableFormatId}"
+                   readonly="readonly" type="hidden"
+                   th:style="'background-color: lightgray'"/>
+            表名称 : <input th:id="input-tableName-id" th:field="*{tableName}" type="text"/>
+            过滤条件 : <input th:value="${tableFormat.tableWhere}" th:field="*{tableWhere}" type="text"/>
+            <br/>
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            数据源 : <select th:id="select-dataBaseMap-id" th:field="*{dataBase}" th:onchange="this.form.submit()">
+            <option th:value="-1" th:text="请选择"></option>
+            <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                    th:text="${entry.value}"></option>
+        </select>
+        </div>
+
+        <div style="width:1000px;margin:20px auto;text-align: left;">
+            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;字段明细：
+            <button th:if="${viewFlag==2}" th:onclick="addTableField()">新增字段</button>
+            <table style="width:800px;margin:auto auto;">
+                <thead>
+                <tr>
+                    <th>标识</th>
+                    <th>名称</th>
+                    <th>类型</th>
+                    <th>长度</th>
+                    <th>不是null</th>
+                    <th>key键</th>
+                    <th th:if="${viewFlag==1}">创建时间</th>
+                    <th th:if="${viewFlag==2}">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="iterator,itemStat : ${tableFormat.tableFieldList}">
+                    <td th:if="${viewFlag==1}" th:text="${iterator.tableFieldId}"></td>
+                    <td th:if="${viewFlag==2}">
+                        <span th:if="${iterator.tableFieldId!=-1}"
+                              style="width:90px;text-align: center;background-color: lightgray;"
+                              th:id="'each-input-tableFieldId-' + ${itemStat.index}"
+                              th:field="*{tableFieldList[__${itemStat.index}__].tableFieldId}"
+                              th:text="${iterator.tableFieldId}"
+                              type="text"/>
+                        <span th:if="${iterator.tableFieldId==-1}" style="width:90px;background-color: lightgray;"
+                              type="text"/>
+                        <input th:if="${iterator.tableFieldId==-1}" style="width:90px;background-color: lightgray;"
+                              th:id="'each-input-tableFieldId-' + ${itemStat.index}"
+                              th:field="*{tableFieldList[__${itemStat.index}__].tableFieldId}"
+                              type="hidden"/>
+                    </td>
+                    <td th:if="${viewFlag==1}" th:text="${iterator.fieldName}"></td>
+                    <td th:if="${viewFlag==2}">
+                        <input style="width:90px;text-align: center;"
+                               th:id="'each-input-fieldName-' + ${itemStat.index}"
+                               th:field="*{tableFieldList[__${itemStat.index}__].fieldName}"
+                               type="text"/></td>
+                    <td th:if="${viewFlag==1}" th:text="${fieldTypeNameMap[__${iterator.fieldType}__]}"></td>
+                    <td th:if="${viewFlag==2}">
+                        <select th:id="'each-select-fieldType-' + ${itemStat.index}"
+                                th:field="*{tableFieldList[__${itemStat.index}__].fieldType}">
+                            <option th:value="-1" th:text="请选择"></option>
+                            <option th:each="entry : ${fieldTypeNameMap}" th:value="${entry.key}"
+                                    th:text="${entry.value}"></option>
+                        </select>
+                    </td>
+
+                    <td th:if="${viewFlag==1}" th:text="${iterator.fieldLength}"></td>
+                    <td th:if="${viewFlag==2}"><input
+                            th:id="'each-input-fieldLength-' + ${itemStat.index}"
+                            th:field="*{tableFieldList[__${itemStat.index}__].fieldLength}"
+                            type="number" min="0" max="256"/></td>
+                    <td th:if="${viewFlag==1}">
+                        <input th:id="'each-input-nullAble-' + ${itemStat.index}"
+                               th:checked="${iterator.nullAble==0}"
+                               readonly="readonly"
+                               type="checkbox"/>
+                    </td>
+                    <td th:if="${viewFlag==2}">
+                        <input th:id="'each-input-nullAble-' + ${itemStat.index}"
+                               th:field="*{tableFieldList[__${itemStat.index}__].nullAble}"
+                               th:value="0"
+                               th:checked="${iterator.nullAble==0}"
+                               type="checkbox"/>
+                    </td>
+                    <td th:if="${viewFlag==1}">
+                        <input th:id="'each-input-keyFlag-' + ${itemStat.index}"
+                               th:checked="${iterator.keyFlag==1}"
+                               readonly="readonly"
+                               type="checkbox"/>
+                    </td>
+                    <td th:if="${viewFlag==2}">
+                        <input th:id="'each-input-keyFlag-' + ${itemStat.index}"
+                               th:field="*{tableFieldList[__${itemStat.index}__].keyFlag}"
+                               th:value="1"
+                               th:checked="${iterator.keyFlag==1}"
+                               type="checkbox"/>
+                    </td>
+
+                    <td th:if="${viewFlag==1}"
+                        th:text="${#dates.format(iterator.createDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td th:if="${viewFlag==2}">
+                        <button th:if="${viewFlag==2}" th:onclick="deleteTableField([[${itemStat.index}]])">删除
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${viewFlag==1}" style="width:1000px;margin:20px auto;text-align: center;">
+            <button th:if="${ sourcePage!='tableRowsSelect'}"
+                    th:onclick="backTableRowsWindow();return false;">关闭
+            </button>
+            <button th:if="${ sourcePage=='tableRowsSelect'}"
+                    th:onclick="backTableRowsWindow();return false;">关闭
+            </button>
+        </div>
+        <div th:if="${viewFlag==2}" style="width:1000px;margin:20px auto;text-align: center;">
+            <input type="submit" value="保存" th:onclick="return confirmSubmit(1);"/>
+            &emsp;
+            <input type="reset" value="重置"/>
+            &emsp;
+            <input type="submit" value="库表校验" th:onclick="return confirmSubmit(2);"/>
+            &emsp;
+            <input type="submit" value="生成库表" th:onclick="return confirmSubmit(3);"/>
+            &emsp;
+            <input type="submit" value="库表同步" th:onclick="return confirmSubmit(4);"/>
+            &emsp;
+            <button th:onclick="backTableRowsWindow();return false;">关闭</button>
+        </div>
+    </form>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+</body>
+</html>

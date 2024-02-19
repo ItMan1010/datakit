@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>库表转换管理</title>
+
+    <script th:inline="javascript">
+        function confirmSubmit(action) {
+            if (document.getElementById('select-sourcedb').value == -1) {
+                confirm('请选择源库');
+                return false;
+            }
+
+            if (document.getElementById('select-targetdb').value == -1) {
+                confirm('请选择目标库');
+                return false;
+            }
+            document.getElementById('input-action').value = action;
+        }
+
+        function confirmAllSelect() {
+            var tableTransformArray = /*[[${tableTransformDTO.tableTransformList}]]*/ [];
+            for (var i = 0; i < tableTransformArray.length; i++) {
+                if (document.getElementById('input-selectFlag-' + i).checked) {
+                    document.getElementById('input-selectFlag-' + i).checked = false;
+                } else {
+                    document.getElementById('input-selectFlag-' + i).checked = true;
+                }
+            }
+            return false;
+        }
+    </script>
+
+    <style>
+        /* 定义鼠标悬停时的行颜色 */
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* 定义特定类名的行鼠标悬停颜色 */
+        tr.specific-row:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <form method="get" th:action="@{'/datakit/table/transform/form/get'}" th:object="${tableTransformDTO}">
+
+        <div style="width:1200px;margin:20px auto 0px auto;">
+            <input th:type="hidden"
+                   th:id="input-action"
+                   th:value="${tableTransformDTO.action}"
+                   th:field="*{action}"/>
+
+            源库:
+            <select th:id="select-sourcedb" th:field="*{sourceDb}">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            &emsp;&emsp;
+            =======>
+            &emsp;
+            目标库:
+            <select th:id="select-targetdb" th:field="*{targetDb}">
+                <option th:value="-1" th:text="请选择"></option>
+                <option th:each="entry : ${dataBaseMap}" th:value="${entry.key}"
+                        th:text="${entry.value}"></option>
+            </select>
+            &emsp;&emsp;&emsp;
+            <input type="submit" value="查询匹配" th:onclick="return confirmSubmit(1);"/>
+            &emsp;
+            <input type="submit" value="一键转换" th:onclick="return confirmSubmit(2);"/>
+
+        </div>
+
+        <div style="width:1200px;margin:0px auto 0px auto;">
+            <table style="width:1200px;margin:auto auto;">
+                <thead>
+                <tr>
+                    <th>序列</th>
+                    <th>源库表名称</th>
+                    <th>目标库表名称</th>
+                    <th>转换状态</th>
+                    <th>
+                        <input th:value="1" type="checkbox" th:onclick="confirmAllSelect()"/>
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="iterator,itemStat : ${tableTransformDTO.tableTransformList}">
+                    <td>
+                        <span th:text="${itemStat.index}+1"
+                              type="text" readonly="readonly"/>
+                    </td>
+                    <td>
+                        <input th:field="*{tableTransformList[__${itemStat.index}__].sourceTableName}"
+                               th:value="${iterator.sourceTableName}"
+                               type="text"/>
+                    </td>
+                    <td>
+                        <input th:field="*{tableTransformList[__${itemStat.index}__].targetTableName}"
+                               th:value="${iterator.targetTableName}"
+                               type="text"/>
+                    </td>
+                    <td th:text="${iterator.stateName}"></td>
+                    <td>
+                        <input th:id="'input-selectFlag-'+ ${itemStat.index}"
+                               th:field="*{tableTransformList[__${itemStat.index}__].selectFlag}"
+                               th:value="1"
+                               th:checked="${iterator.selectFlag==1}"
+                               type="checkbox"/>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </form>
+
+    <div style="display: none;"
+         th:insert="common/commons::fragment-result(${resultCode},${resultMessage},${resultHref})"></div>
+</div>
+</body>
+</html>

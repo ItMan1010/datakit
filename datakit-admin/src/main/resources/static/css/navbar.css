@@ -1,0 +1,55 @@
+.navbar-div-left {
+    width: 10%;
+    height: 100%;
+    float: left;
+}
+
+.navbar-div-right {
+    width: 89%;
+    height: 10%;
+    float: right;
+}
+
+.navbar-div-right-top {
+    width: 89%;
+    height: 90%;
+    float: right;
+}
+
+div {
+    border: 1px solid black;
+}
+
+table, th, td {
+    border: 1px solid silver;
+    border-collapse: collapse;
+    text-align: center;
+}
+
+thead {
+    background-color: darkgray;
+}
+
+#----------树形菜单展开、折叠
+.collapsible {
+    list-style: none;
+    padding-left: 0;
+}
+
+.collapsible li {
+    margin-bottom: 5px;
+}
+
+.collapsible li:before {
+    content: '\25B6\00a0'; /* Unicode character for right-pointing triangle */
+    cursor: pointer;
+}
+
+.collapsible li.collapsed:before {
+    content: '\25BC\00a0'; /* Unicode character for down-pointing triangle */
+}
+
+.content {
+    display: none;
+}
+#----------树形菜单展开、折叠

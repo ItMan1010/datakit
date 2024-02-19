@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>datakit</title>
+
+
+    <script th:inline="javascript">
+        function confirmSubmit() {
+            if (document.getElementById('input-username-id').value.length == 0) {
+                confirm('用户名称为空!');
+                return false;
+            }
+
+            if (document.getElementById('input-password-id').value.length == 0) {
+                confirm('登录密码为空!');
+                return false;
+            }
+
+            return true;
+        }
+    </script>
+
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div style="width:1000px;margin:200px auto 30px auto; text-align: center;">
+    Welcome to cloud datakit !
+</div>
+
+<div style="width:1000px;margin:0px auto; text-align: center;">
+    <form method="post" th:action="@{./login}" th:object="${userDTO}">
+        用户名称 : <input th:id="input-username-id" type="text" th:field="*{user.username}"/><br/>
+        登录密码 : <input th:id="input-password-id" type="password" th:field="*{user.password}"/><br/>
+        <br/>
+        <input type="submit" value="确认" th:onclick="return confirmSubmit();"/>&nbsp;
+        &emsp;
+        <input type="reset" value="重置"/>
+    </form>
+</div>
+
+<div style="display: none;" th:insert="common/commons::fragment-result(${resultCode},${resultMessage},'null')"></div>
+</body>
+
+</html>

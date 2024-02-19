@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>任务对象</title>
+    <link rel="stylesheet" href="/css/navbar.css" type="text/css">
+</head>
+
+<body>
+<div th:insert="~{common/commons::navbar}"></div>
+
+<div class="navbar-div-right" id="content">
+    <div style="width:1000px;margin:40px auto;text-align: left;">
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        <a th:href="@{/datakit/fileRows/query?pageNum=1&state=-1}">文件对象</a>
+        <span> : text文件、excel文件</span>
+    </div>
+
+    <div style="width:1000px;margin:40px auto;text-align: left;">
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        <a th:href="@{/datakit/tableRows/query?pageNum=1&state=-1}">表对象</a>
+        <span> : mysql、postgres、oracle</span>
+    </div>
+
+    <div style="width:1000px;margin:40px auto;text-align: left;">
+        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+        <a th:href="@{/datakit/tableFlowRows/query?pageNum=1&state=-1}">数据流对象</a>
+        <span> : 多表数据流程</span>
+    </div>
+</div>
+</body>
+</html>
