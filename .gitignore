@@ -1,0 +1,11 @@
+# 忽略所有隐藏文件  
+.*
+logs
+  
+# 忽略特定的隐藏目录  
+.idea
+.vscode
+.DS_Store
+.gitkeep
+*.iml
+target/
